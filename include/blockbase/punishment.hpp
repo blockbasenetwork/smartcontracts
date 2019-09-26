@@ -46,7 +46,7 @@ std::vector<struct blockbase::producers> blockbase::checksendprods(eosio::name o
     std::vector<struct blockbase::producers> finalproducerlist;
     for (auto producer : _producers) {
         auto ip = _ips.find(producer.key.value);
-        if (ip -> encryptedips.size() != producersneeded) {
+        if (ip -> encryptedips.size() != producersneeded + 1) {
             finalproducerlist.push_back(producer);
             continue;
         }
