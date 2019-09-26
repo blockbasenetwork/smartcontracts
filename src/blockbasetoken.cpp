@@ -152,8 +152,6 @@ void blockbasetoken::add_balance(const name& owner, const asset& value, const na
 }
 
 void blockbasetoken::payment(const name& sidechain, const name& claimer, const asset& quantity) {
-    require_auth(get_self()); // Temporarily disabled
-
     check(sidechain != claimer, "cannot transfer to self");
     check(is_account(claimer), "claimer account does not exist");
     auto sym = quantity.symbol.code();
@@ -174,8 +172,6 @@ void blockbasetoken::payment(const name& sidechain, const name& claimer, const a
 }
 
 void blockbasetoken::addstake(const name& owner, const name& sidechain, const asset& stake) {
-    require_auth(get_self()); // Temporarily disabled
-
     require_auth(owner);
     check(is_account(sidechain), "sidechain account does not exist");
     auto sym = stake.symbol.code();
@@ -218,8 +214,6 @@ void blockbasetoken::sub_stake(const name& sidechain, const name& user, const as
 }
 
 void blockbasetoken::prodpunish(const name& owner, const name& contract){
-    require_auth(get_self()); // Temporarily disabled
-
     require_auth(owner);
     std::map<eosio::name, asset> prodpunish = getbadprods(contract, owner);
     if(prodpunish.size() > 0){
@@ -250,8 +244,6 @@ void blockbasetoken::prodpunish(const name& owner, const name& contract){
 }
 
 void blockbasetoken::claimreward(const name& owner, const name& claimer, const name& contract) {
-    require_auth(get_self()); // Temporarily disabled
-
     require_auth(claimer);
 
     require_recipient(owner);
@@ -276,8 +268,6 @@ void blockbasetoken::claimreward(const name& owner, const name& claimer, const n
 }
 
 void blockbasetoken::claimstake(const name& claimer, const name& sidechain, const name& contract) {
-    require_auth(get_self()); // Temporarily disabled
-
     require_auth(claimer);
     check(is_account(sidechain), "sidechain account does not exist");
 
@@ -315,8 +305,6 @@ void blockbasetoken::open(const name& owner, const symbol& symbol, const name& r
 }
 
 void blockbasetoken::leaveledger(const name& owner, const name& producer, const name& sidechain){
-    require_auth(get_self()); // Temporarily disabled
-
     require_auth(owner);
     check(is_account(producer), "sidechain account does not exist");
 
