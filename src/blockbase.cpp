@@ -84,7 +84,6 @@
         changestate({owner, true, false, true, false, false, false, state -> productiontime});
 
         eosio::print("Start candidature time. \n");
-        delayedtx(owner, eosio::name("secrettime"), info -> candidaturetime, CANDIDATURE_TIME_ID);
     }
 
     [[eosio::action]] void blockbase::secrettime(eosio::name owner) {
@@ -105,7 +104,6 @@
             eosio::print("Starting candidature time again... \n");
             setenddate(owner, CANDIDATURE_TIME_ID);
             changestate({owner, true, false, true, false, false, false, state -> productiontime});
-            delayedtx(owner, eosio::name("secrettime"), info -> candidaturetime, CANDIDATURE_TIME_ID);
             return;
         }
 
@@ -114,7 +112,6 @@
         setenddate(owner, SECRET_TIME_ID);
 
         eosio::print("Start Secret send time. \n");
-        delayedtx(owner, eosio::name("startsendtime"), info -> sendsecrettime, SECRET_TIME_ID);
     }
 
     [[eosio::action]] 
@@ -151,7 +148,6 @@
                 cancel_deferred(owner.value + SECRET_TIME_ID);
                 eosio::print("Starting candidature time again... \n");
                 setenddate(owner, CANDIDATURE_TIME_ID);
-                delayedtx(owner, eosio::name("secrettime"), info -> candidaturetime, CANDIDATURE_TIME_ID);
                 return;
             }
         } else {
@@ -167,7 +163,6 @@
             changestate({owner, true, false, false, false, true, false, state -> productiontime});
             
             eosio::print("Start send time. \n");
-            delayedtx(owner, eosio::name("startrectime"), info -> ipsendtime, RECEIVE_TIME_ID);
         }
     }
 
@@ -201,7 +196,6 @@
                 eosio::print("Candidature time started again. \n");
                 cancel_deferred(owner.value + SEND_TIME_ID);
                 setenddate(owner, CANDIDATURE_TIME_ID);
-                delayedtx(owner, eosio::name("secrettime"), info -> candidaturetime, CANDIDATURE_TIME_ID);
                 return;
             }
         } 
@@ -210,7 +204,6 @@
         startcount(owner, false);
         setenddate(owner, RECEIVE_TIME_ID);
         eosio::print("Start receive time. \n");
-        delayedtx(owner, eosio::name("prodtime"), info -> ipreceivetime, PRODUCTION_TIME_ID);
     }
 
     [[eosio::action]] 
@@ -241,7 +234,6 @@
             if(nextproducer.isready) nextcurrentprod(owner, nextproducer.key);
         }
         cancel_deferred(owner.value + CHANGE_PRODUCER_ID);
-        delayedtx(owner, eosio::name("changecprod"), info -> blocktimeduration, CHANGE_PRODUCER_ID);
     }
 
     #pragma endregion
