@@ -1,5 +1,3 @@
-const eosio::name BLOCKBASE_TOKEN = eosio::name("blockbasetkn");
-
 static std::map<eosio::name, asset> getbadprods(const eosio::name& contract, const eosio::name& owner) {
     blockbase::producersIndex _producers(contract, owner.value);
     blockbase::blacklistIndex _blacklists(contract, owner.value);
@@ -51,7 +49,7 @@ static bool isstakerecoverable(eosio::name contract, eosio::name owner, eosio::n
     if (producerI == _producers.end()) return true;
 
     if (owner.value == producer.value){
-        eosio::asset clientstake = blockbasetoken::get_stake(eosio::name("bbtoken"), owner, owner);
+        eosio::asset clientstake = blockbasetoken::get_stake(BLOCKBASE_TOKEN, owner, owner);
         return (clientstake.amount < ((info -> paymentperblock)*(info -> blocksbetweensettlement))
         && state -> productiontime == false);
     }

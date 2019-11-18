@@ -45,7 +45,7 @@ void blockbase::enoughclientstake(eosio::name owner) {
     auto info = _infos.find(owner.value);
     auto state = _states.find(owner.value);
 
-    asset clientstake = blockbasetoken::get_stake(eosio::name("bbtoken"), owner, owner);
+    asset clientstake = blockbasetoken::get_stake(BLOCKBASE_TOKEN, owner, owner);
 
     if (clientstake.amount < ((info->paymentperblock) * (info->blocksbetweensettlement))) {
         changestate({owner, true, false, false, false, false, false, false});
@@ -60,12 +60,12 @@ void blockbase::enoughclientstake(eosio::name owner) {
 void blockbase::checkprodstake(eosio::name owner) {
     producersIndex _producers(_self, owner.value);
     for (auto producer : _producers) {
-        asset prodstake = blockbasetoken::get_stake(eosio::name("bbtoken"), owner, producer.key);
+        asset prodstake = blockbasetoken::get_stake(BLOCKBASE_TOKEN, owner, producer.key);
 
         if (prodstake.amount <= 0){
             action(
                 permission_level{_self, eosio::name("active")}, 
-                eosio::name("bbtoken"), eosio::name("leaveledger"), 
+                BLOCKBASE_TOKEN, eosio::name("leaveledger"), 
                 std::make_tuple(owner, producer, owner)
             ).send();
         }

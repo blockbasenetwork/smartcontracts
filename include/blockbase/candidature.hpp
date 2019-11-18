@@ -19,13 +19,11 @@
     }
 
     bool blockbase::isconfigvalid(blockbase::contractinfo info) {
-        if(info.candidaturetime > MAX_CANDIDATURE_TIME || info.candidaturetime < MIN_CANDIDATURE_TIME) return false;
-        if(info.ipsendtime > MAX_IP_SEND_TIME || info.ipsendtime < MIN_IP_SEND_TIME) return false; 
-        if(info.ipreceivetime > MAX_IP_SEND_TIME || info.ipreceivetime < MIN_IP_SEND_TIME) return false;
-        if(info.sizeofblockinbytes > MAX_BLOCK_SIZE) return false;
-        if(info.requirednumberofproducers > MAX_PRODUCERS || info.requirednumberofproducers < MIN_PRODUCERS) return false;
-        return info.paymentperblock >= MIN_PAYMENT && info.minimumcandidatestake >= MIN_CANDIDATE_STAKE 
-            && info.blocksbetweensettlement <= MAX_BLOCK_TIME_BEETWEEN_BLOCKS;
+        if(info.candidaturetime < MIN_CANDIDATURE_TIME) return false;
+        if(info.ipsendtime < MIN_IP_SEND_TIME) return false; 
+        if(info.ipreceivetime < MIN_IP_SEND_TIME) return false;
+        if(info.requirednumberofproducers < MIN_PRODUCERS) return false;
+        return info.paymentperblock >= MIN_PAYMENT && info.minimumcandidatestake >= MIN_CANDIDATE_STAKE;
     }
 
     bool blockbase::iscandidatetime(eosio::name owner) {
@@ -63,8 +61,8 @@
             explicit StakeComparator(eosio::name sidechain_) : sidechain(sidechain_) {}
 
             bool operator()(blockbase::candidates cand1, blockbase::candidates cand2) const{
-                eosio::asset cstake1 = blockbasetoken::get_stake(eosio::name("bbtoken"), sidechain, cand1.key);
-                eosio::asset cstake2 = blockbasetoken::get_stake(eosio::name("bbtoken"), sidechain, cand2.key);
+                eosio::asset cstake1 = blockbasetoken::get_stake(BLOCKBASE_TOKEN, sidechain, cand1.key);
+                eosio::asset cstake2 = blockbasetoken::get_stake(BLOCKBASE_TOKEN, sidechain, cand2.key);
                 return cstake1 < cstake2;
             }
             eosio::name sidechain;

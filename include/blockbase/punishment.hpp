@@ -2,7 +2,7 @@
 void blockbase::punishprod(eosio::name owner) {
     action(
         permission_level{owner, eosio::name("active")}, 
-        eosio::name("bbtoken"), eosio::name("prodpunish"), 
+        BLOCKBASE_TOKEN, eosio::name("prodpunish"), 
         std::make_tuple(owner, _self)
     ).send();
 }

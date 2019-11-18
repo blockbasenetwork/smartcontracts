@@ -52,7 +52,7 @@
         auto state = _states.find(owner.value);
         check(state != _states.end() && state -> startchain != false && state -> productiontime == false, "This sidechain hasnt't been created yet, please create it first.");
         check(isconfigvalid(infojson), "The configurantion inserted is incorrect or not valid, please insert it again.");
-        eosio::asset cstake = blockbasetoken::get_stake(eosio::name("bbtoken"), owner, owner);
+        eosio::asset cstake = blockbasetoken::get_stake(BLOCKBASE_TOKEN, owner, owner);
         check(cstake.amount > MIN_STAKE_FOR_CLIENT, "No stake inserted or the amount is not valid. Please insert your stake and configure the chain again. \n");
 
         changestate({owner, true, true, false, false, false, false, false});
@@ -254,7 +254,7 @@
         check(state != _states.end() && state -> startchain != false && state -> candidaturetime != false, "The chain is not in the correct state, please check the current state of the chain. \n");
         check(iscandidatevalid(owner, candidate, worktimeinseconds), "Candidature is invalid, please check the inserted values. \n");
         check(ispublickeyvalid(publickey), "Incorrect format in public key, try inserting again. \n");
-        eosio::asset candidatestake = blockbasetoken::get_stake(eosio::name("bbtoken"), owner, candidate);
+        eosio::asset candidatestake = blockbasetoken::get_stake(BLOCKBASE_TOKEN, owner, candidate);
         check(candidatestake.amount > 0, "No stake inserted in the sidechain. Please insert a stake first.\n");
         check(candidatestake.amount > info -> minimumcandidatestake, "Stake inserted is not enough. Please insert more stake to be able to apply.\n");
         insertcandidate(owner, candidate, worktimeinseconds, publickey, secrethash);
