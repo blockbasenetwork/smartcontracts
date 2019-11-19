@@ -209,7 +209,6 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     void checkprodstake(eosio::name owner);
     void rewardprod(eosio::name owner, eosio::name producer, uint16_t quantity);
     void blockcount(eosio::name owner, eosio::name producer);
-    void actiondeploy(eosio::name actionname, eosio::name scope, eosio::name permission);
     void authassign(eosio::name owner, eosio::name contract, eosio::name permission1, uint8_t threshold);
     void linkauth(eosio::name contract, std::vector<eosio::name> actions, eosio::name permission);
     void nextcurrentprod(eosio::name owner, eosio::name nextproducer);

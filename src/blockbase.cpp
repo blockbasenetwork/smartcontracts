@@ -63,7 +63,6 @@
             deleteprods(owner);
         } 
         eosio::print("Information inserted. \n");
-        actiondeploy(eosio::name("startcandtime"), owner, eosio::name("active"));
     }
 
     [[eosio::action]] 
