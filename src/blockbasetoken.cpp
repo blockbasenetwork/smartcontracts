@@ -243,15 +243,13 @@ void blockbasetoken::prodpunish(const name& owner, const name& contract){
     }
 }
 
-void blockbasetoken::claimreward(const name& owner, const name& claimer, const name& contract) {
+void blockbasetoken::claimreward(const name& sidechain, const name& claimer, const name& contract) {
     require_auth(claimer);
-
-    require_recipient(owner);
     require_recipient(claimer);
 
     ledgers sidechainledger(get_self(), claimer.value);
     for(auto& ledger : sidechainledger){
-        if(ledger.owner == claimer){
+        if(ledger.sidechain == sidechain){
             auto reward = getreward(ledger.sidechain, claimer);
             asset payment_reward = asset(reward, symbol(symbol_code("BBT"), 4));
             action(

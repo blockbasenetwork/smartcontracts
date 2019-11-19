@@ -56,7 +56,7 @@ namespace eosio {
                                  const name& contract);
 
             [[eosio::action]]
-            void claimreward(const name& owner, const name& claimer, const name& contract);
+            void claimreward(const name& sidechain, const name& claimer, const name& contract);
 
             [[eosio::action]]
             void claimstake(const name& claimer, 
