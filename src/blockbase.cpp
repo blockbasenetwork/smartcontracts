@@ -14,7 +14,6 @@
 #include <blockbase/blockproduce.hpp>
 #include <blockbase/payments.hpp>
 #include <blockbase/punishment.hpp>
-#include <blockbase/transactions.hpp>
 #include <blockbase/service.hpp>
 
     #pragma region State Actions
