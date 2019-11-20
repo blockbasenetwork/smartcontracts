@@ -125,14 +125,12 @@ void blockbase::decisionmark(eosio::name owner){
             if(state -> candidaturetime == false && state -> secrettime == false && state -> ipsendtime == false && state -> ipreceivetime == false) {
                 changestate({owner, true, false, true, false, false, false, false});
                 eosio::print("  Number of producers on the pool is below threshold, mining stoped and candidature time starting... \n");
-                cancel_deferred(owner.value + CANDIDATURE_TIME_ID);
                 setenddate(owner, CANDIDATURE_TIME_ID);
             }
         } else if (producersize >= ceil(numberofproducersrequired * PRODUCERS_IN_CHAIN_THRESHOLD) && producersize < numberofproducersrequired) {
             if(state -> candidaturetime == false && state -> secrettime == false && state -> ipsendtime == false && state -> ipreceivetime == false) {
                 changestate({owner, true, false, true, false, false, false, true});
                 eosio::print("  Starting candidature time but mining continues. \n");
-                cancel_deferred(owner.value + CANDIDATURE_TIME_ID);
                 setenddate(owner, CANDIDATURE_TIME_ID);
             }
             eosio::print("  Candidature in progress... \n");

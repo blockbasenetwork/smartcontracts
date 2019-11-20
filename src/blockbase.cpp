@@ -133,7 +133,6 @@
         std::vector<struct blockbase::candidates> finalcandidatelist = choosecandidates(owner);
         if(comparenumbers(producersize + finalcandidatelist.size(), info -> requirednumberofproducers)) {
             if(comparenumbers(producersize, ceil((info -> requirednumberofproducers) * PRODUCERS_IN_CHAIN_THRESHOLD))){
-                cancel_deferred(owner.value + CHANGE_PRODUCER_ID);
                 changestate({owner, true, false, false, false, false, false, false});
                 deleteblockcount(owner);
                 deleteips(owner);
@@ -142,8 +141,6 @@
                 eosio::print("Not enough candidates, configure the chain again. \n");
             } else {
                 changestate({owner, true, false, true, false, false, false, state -> productiontime});
-                cancel_deferred(owner.value + SEND_TIME_ID);
-                cancel_deferred(owner.value + SECRET_TIME_ID);
                 eosio::print("Starting candidature time again... \n");
                 setenddate(owner, CANDIDATURE_TIME_ID);
                 return;
@@ -192,7 +189,6 @@
                 changestate({owner, true, false, true, false, false, false, state -> productiontime});
 
                 eosio::print("Candidature time started again. \n");
-                cancel_deferred(owner.value + SEND_TIME_ID);
                 setenddate(owner, CANDIDATURE_TIME_ID);
                 return;
             }
@@ -231,7 +227,6 @@
             struct blockbase::producers nextproducer = getnextprod(owner);
             if(nextproducer.isready) nextcurrentprod(owner, nextproducer.key);
         }
-        cancel_deferred(owner.value + CHANGE_PRODUCER_ID);
     }
 
     #pragma endregion
