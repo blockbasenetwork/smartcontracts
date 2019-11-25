@@ -72,6 +72,7 @@ class[[eosio::contract]] blockbase : public eosio::contract {
         std::string previousblockhash;
         uint64_t sequencenumber;
         uint64_t timestamp;
+        uint64_t transactionnumber;
         std::string producersignature;
         std::string merkletreeroothash;
         bool isverified;
@@ -209,8 +210,6 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     void checkprodstake(eosio::name owner);
     void rewardprod(eosio::name owner, eosio::name producer, uint16_t quantity);
     void blockcount(eosio::name owner, eosio::name producer);
-    void authassign(eosio::name owner, eosio::name contract, eosio::name permission1, uint8_t threshold);
-    void linkauth(eosio::name contract, std::vector<eosio::name> actions, eosio::name permission);
     void nextcurrentprod(eosio::name owner, eosio::name nextproducer);
     void insertblock(eosio::name owner, eosio::name producer, blockbase::blockheaders block);
     void insertcandidate(eosio::name owner, eosio::name candidate, uint64_t & worktimeinseconds, std::string & publickey, checksum256 secrethash);

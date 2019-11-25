@@ -4,11 +4,11 @@
 #include <eosio/asset.hpp>
 #include <eosio/action.hpp>
 #include <cmath>
+#include <native.hpp>
 
 #include <blockbasetoken/blockbasetoken.hpp>
 #include <blockbase/blockbase.hpp>
 
-#include <blockbase/authorizations.hpp>
 #include <blockbase/candidature.hpp>
 #include <blockbase/consensus.hpp>
 #include <blockbase/blockproduce.hpp>
@@ -137,7 +137,6 @@
                 deleteblockcount(owner);
                 deleteips(owner);
                 deleteprods(owner);
-                authassign(owner, VERIFY_PERMISSION_NAME, eosio::name("active"), thresholdcalc(std::distance(_producers.begin(), _producers.end())));
                 eosio::print("Not enough candidates, configure the chain again. \n");
             } else {
                 changestate({owner, true, false, true, false, false, false, state -> productiontime});
@@ -150,7 +149,6 @@
                 addprod(owner, candidate);
                 addpublickey(owner, candidate.key, candidate.publickey);
                 rcandidate(owner, candidate.key);
-                authassign(owner, VERIFY_PERMISSION_NAME, eosio::name("active"), thresholdcalc(std::distance(_producers.begin(), _producers.end())));
             }
             eosio::print("Producers sucessfully inserted. \n");
             setenddate(owner, SEND_TIME_ID);
@@ -216,8 +214,6 @@
         changestate({owner, true, false, false, false, false, false, true});
 
         if (state->productiontime) return;
-
-        linkauth(owner, VERIFY_PERMISSION_ACTION, VERIFY_PERMISSION_NAME);
 
         eosio::print("And let the production begin! \n");
         eosio::print("Inserting current producer. \n");

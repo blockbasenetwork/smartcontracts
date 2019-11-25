@@ -77,6 +77,7 @@ void blockbase::insertblock(eosio::name owner, eosio::name producer, blockbase::
         newblockI.previousblockhash = block.previousblockhash;
         newblockI.sequencenumber = block.sequencenumber;
         newblockI.timestamp = block.timestamp;
+        newblockI.transactionnumber = block.transactionnumber;
         newblockI.producersignature = block.producersignature;
         newblockI.merkletreeroothash = block.merkletreeroothash;
         newblockI.isverified = false;
