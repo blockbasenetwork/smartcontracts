@@ -212,6 +212,17 @@ icon:
 
 Action ran by a multi sig transaction sent by the producers to confirm that the block header is valid. This action will receive as paramenter the {{ owner }} of the chain, the {{ producer }} and the {{ blockhash }} of the submited block.
 
+<h1 class="contract">blacklistprod</h1>
+
+---
+spec_version: "0.2.0"
+title: Black list bad producer
+summary: 'Insert bad producer in contract black list'
+icon:
+---
+
+Action ran in the smartcontract, that verifies if bad producer actualy did a bad job and them insert in smart contract multi index table for future proof of the bad behavior. This action will receive as paramenter the {{ owner }} of the chain, the {{ producer }} to be able to sucessfully insert the bad producer.
+
 <h1 class="contract">endservice</h1>
 
 ---

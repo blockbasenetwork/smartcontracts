@@ -458,6 +458,24 @@
         }
     }
 
+    [[eosio::action]] 
+    void blockbase::blacklistprod(eosio::name owner, eosio::name producer){
+        require_auth(owner);
+        producersIndex _producers(_self, owner.value);
+        blacklistIndex _blacklists(_self, owner.value);
+        
+        auto blacklisted = _blacklists.find(producer.value);
+        check(blacklisted == _blacklists.end(), "This producer is already black listed \n");
+        
+        auto producerI = _producers.find(producer.value);
+        check(producerI != _producers.end(), "This producer doesn't exist in this sidechain \n");
+        check(producerI -> warning == WARNING_PUNISH, "The provider can't be blacklisted, warning isn't set to punish. \n");
+        
+        _blacklists.emplace(owner, [&](auto &blacklist) {
+            blacklist.key = producer;
+        });
+    }
+
     [[eosio::action]]
     void blockbase::endservice(eosio::name owner) {
         require_auth(owner);

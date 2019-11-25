@@ -16,15 +16,23 @@ void blockbase::changewarning(eosio::name owner, eosio::name producer, uint16_t 
     if (failedblocks > 0 && failedblocks < totalfailedblockspermited) {
         if (producerI -> warning == WARNING_FLAGGED) {
             updatewarning(owner, producer, WARNING_PUNISH);
-            _blacklists.emplace(owner, [&](auto &blacklist) {
-                blacklist.key = producer;
-            });
+
+            action(
+                permission_level{owner, eosio::name("active")}, 
+                get_self(), eosio::name("blacklistprod"), 
+                std::make_tuple(owner, producer)
+            ).send();
+
         } else updatewarning(owner, producer, WARNING_FLAGGED);
     } else if (failedblocks > totalfailedblockspermited && failedblocks <= totalblocks) {
         updatewarning(owner, producer, WARNING_PUNISH);
-        _blacklists.emplace(owner, [&](auto &blacklist) {
-            blacklist.key = producer;
-        });
+        
+        action(
+            permission_level{owner, eosio::name("active")}, 
+            get_self(), eosio::name("blacklistprod"), 
+            std::make_tuple(owner, producer)
+        ).send();
+
     } else if (failedblocks == 0 && totalblocks == producedblocks && producerI -> warning == WARNING_FLAGGED) updatewarning(owner, producer, WARNING_CLEAR);
 }
 
