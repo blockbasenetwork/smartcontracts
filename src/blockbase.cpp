@@ -489,6 +489,7 @@
         candidatesIndex _candidates(_self, owner.value);
         blacklistIndex _blacklists(_self, owner.value);
         rewardsIndex _rewards(_self, owner.value);
+        blockheadersIndex _blockheaders(_self, owner.value);
 
         deleteprods(owner);
         deleteips(owner);
@@ -514,6 +515,9 @@
         
         auto itr6 = _currentprods.begin();
         while (itr6 != _currentprods.end()) itr6 = _currentprods.erase(itr6);
+
+        auto itr7 = _blockheaders.begin();
+        while (itr7 != _blockheaders.end()) itr7 = _blockheaders.erase(itr7);
         
         eosio::print("Service Ended. \n");
     }
