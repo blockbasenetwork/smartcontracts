@@ -19,7 +19,7 @@ void blockbase::changewarning(eosio::name owner, eosio::name producer, uint16_t 
 
             action(
                 permission_level{owner, eosio::name("active")}, 
-                get_self(), eosio::name("blacklistprod"), 
+                _self, eosio::name("blacklistprod"), 
                 std::make_tuple(owner, producer)
             ).send();
 
@@ -29,7 +29,7 @@ void blockbase::changewarning(eosio::name owner, eosio::name producer, uint16_t 
         
         action(
             permission_level{owner, eosio::name("active")}, 
-            get_self(), eosio::name("blacklistprod"), 
+            _self, eosio::name("blacklistprod"), 
             std::make_tuple(owner, producer)
         ).send();
 

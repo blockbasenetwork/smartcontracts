@@ -408,7 +408,7 @@
         std::vector<blockbase::producers> producerslist = getreadyprods(owner);
         if(producerslist.size() > 0) {
             auto currentproducer = _currentprods.begin();
-            
+
             blockcount(owner, currentproducer -> producer);
             auto blockcomputation = 0;
             for(auto count : _blockscount) {
@@ -474,6 +474,7 @@
         _blacklists.emplace(owner, [&](auto &blacklist) {
             blacklist.key = producer;
         });
+        manageprod(owner);
     }
 
     [[eosio::action]]
