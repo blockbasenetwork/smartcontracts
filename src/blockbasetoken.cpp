@@ -250,11 +250,11 @@ void blockbasetoken::claimreward(const name& sidechain, const name& claimer, con
     ledgers sidechainledger(get_self(), claimer.value);
     for(auto& ledger : sidechainledger){
         if(ledger.sidechain == sidechain){
-            auto reward = getreward(ledger.sidechain, claimer);
+            auto reward = getreward(contract, claimer);
             asset payment_reward = asset(reward, symbol(symbol_code("BBT"), 4));
             action(
                 permission_level{get_self(), eosio::name("active")},
-                ledger.sidechain, eosio::name("resetreward"),
+                contract, eosio::name("resetreward"),
                 std::make_tuple(ledger.sidechain, claimer)
             ).send();
             payment(ledger.sidechain, claimer, payment_reward);

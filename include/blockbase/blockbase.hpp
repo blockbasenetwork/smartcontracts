@@ -115,8 +115,8 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     // Contract Information Table
     struct [[eosio::table]] contractinfo {
         eosio::name key;
-        uint32_t paymentperblock;
-        uint32_t minimumcandidatestake;
+        uint64_t paymentperblock;
+        uint64_t minimumcandidatestake;
         uint32_t requirednumberofproducers;
         uint32_t candidaturetime;
         uint32_t sendsecrettime;
@@ -209,7 +209,7 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     void updatewarning(eosio::name owner, eosio::name producer, uint8_t warning);
     void enoughclientstake(eosio::name owner);
     void checkprodstake(eosio::name owner);
-    void rewardprod(eosio::name owner, eosio::name producer, uint16_t quantity);
+    void rewardprod(eosio::name owner, eosio::name producer, uint64_t quantity);
     void blockcount(eosio::name owner, eosio::name producer);
     void nextcurrentprod(eosio::name owner, eosio::name nextproducer);
     void insertblock(eosio::name owner, eosio::name producer, blockbase::blockheaders block);

@@ -1,6 +1,6 @@
 #pragma region Payment Methods
 
-void blockbase::rewardprod(eosio::name owner ,eosio::name producer, uint16_t quantity) {
+void blockbase::rewardprod(eosio::name owner ,eosio::name producer, uint64_t quantity) {
     rewardsIndex _rewards(_self, producer.value);
     auto rewardsforproducer = _rewards.find(producer.value);
     if(rewardsforproducer == _rewards.end()) {
