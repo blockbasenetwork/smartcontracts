@@ -338,7 +338,7 @@
         auto rewardsforproducer = _rewards.find(producer.value);
         auto producerI = _producers.find(producer.value);
         if(rewardsforproducer != _rewards.end() && rewardsforproducer -> reward > 0){
-            _rewards.modify(rewardsforproducer, producer, [&](auto &rewardI) {
+            _rewards.modify(rewardsforproducer, same_payer, [&](auto &rewardI) {
                 rewardI.reward = 0;
             });
         }
