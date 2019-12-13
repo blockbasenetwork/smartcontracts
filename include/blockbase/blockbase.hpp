@@ -204,7 +204,6 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     static bool isprod(eosio::name contract, eosio::name owner, eosio::name producer);
     void computation(eosio::name owner);
     void manageprod(eosio::name owner);
-    void punishprod(eosio::name owner);
     void changewarning(eosio::name owner, eosio::name producer, uint16_t failedblocks, uint16_t producedblocks);
     void updatewarning(eosio::name owner, eosio::name producer, uint8_t warning);
     void enoughclientstake(eosio::name owner);
