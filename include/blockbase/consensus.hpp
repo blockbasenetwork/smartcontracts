@@ -18,6 +18,7 @@ void blockbase::computation(eosio::name owner) {
     }
     punishprod(owner);
     //manageprod(owner);
+    startcount(owner, true);
     enoughclientstake(owner);
     eosio::print("Computation has ended. \n");
 }
