@@ -16,8 +16,6 @@ void blockbase::computation(eosio::name owner) {
 
         if (producer.warning != WARNING_PUNISH && producedblocks > 0) rewardprod(owner, producer.key, (producedblocks * (blockpayment)));
     }
-    punishprod(owner);
-    //manageprod(owner);
     startcount(owner, true);
     enoughclientstake(owner);
     eosio::print("Computation has ended. \n");
