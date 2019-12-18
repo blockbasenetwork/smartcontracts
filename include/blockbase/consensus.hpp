@@ -79,7 +79,7 @@ void blockbase::blockcount(eosio::name owner, eosio::name producer) {
     auto info = _infos.find(owner.value);
     auto producerblockcount = _blockscount.find(producer.value);
     if (std::distance(_blockheaders.begin(), _blockheaders.end()) > 0) {
-        if (((--_blockheaders.end())->timestamp) >= (eosio::current_block_time().to_time_point().sec_since_epoch() - ((info->blocktimeduration) + 1)) && producer == eosio::name((--_blockheaders.end())->producer) && (--_blockheaders.end())->isverified == true) {
+        if (((--_blockheaders.end())->timestamp) >= (eosio::current_block_time().to_time_point().sec_since_epoch() - ((info->blocktimeduration) + (info->blocktimeduration)/2)) && producer == eosio::name((--_blockheaders.end())->producer) && (--_blockheaders.end())->isverified == true) {
             _blockscount.modify(producerblockcount, owner, [&](auto &blockcountI) {
                 blockcountI.blocksproduced += 1;
             });
