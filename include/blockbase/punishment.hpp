@@ -1,3 +1,12 @@
+
+void blockbase::punishprod(eosio::name owner) {
+    action(
+        permission_level{owner, eosio::name("active")}, 
+        BLOCKBASE_TOKEN, eosio::name("prodpunish"), 
+        std::make_tuple(owner, _self)
+    ).send();
+}
+
 void blockbase::changewarning(eosio::name owner, eosio::name producer, uint16_t failedblocks, uint16_t producedblocks) {
     producersIndex _producers(_self, owner.value);
     blacklistIndex _blacklists(_self, owner.value);
@@ -5,23 +14,26 @@ void blockbase::changewarning(eosio::name owner, eosio::name producer, uint16_t 
     uint16_t totalblocks = producedblocks + failedblocks;
     uint16_t totalfailedblockspermited = floor(THRESHOLD_FOR_PUNISH * totalblocks);
     if (failedblocks > 0 && failedblocks < totalfailedblockspermited) {
-        if (producerI -> warning == WARNING_FLAGGED)
-        {
+        if (producerI -> warning == WARNING_FLAGGED) {
             updatewarning(owner, producer, WARNING_PUNISH);
-        }
-        else
-        {
-            updatewarning(owner, producer, WARNING_FLAGGED);
-        }
-    } 
-    else if (failedblocks > totalfailedblockspermited && failedblocks <= totalblocks) 
-    {
+
+            action(
+                permission_level{owner, eosio::name("active")}, 
+                _self, eosio::name("blacklistprod"), 
+                std::make_tuple(owner, producer)
+            ).send();
+
+        } else updatewarning(owner, producer, WARNING_FLAGGED);
+    } else if (failedblocks > totalfailedblockspermited && failedblocks <= totalblocks) {
         updatewarning(owner, producer, WARNING_PUNISH);
-    } 
-    else if (failedblocks == 0 && totalblocks == producedblocks && producerI -> warning == WARNING_FLAGGED)
-    {
-        updatewarning(owner, producer, WARNING_CLEAR);
-    }
+        
+        action(
+            permission_level{owner, eosio::name("active")}, 
+            _self, eosio::name("blacklistprod"), 
+            std::make_tuple(owner, producer)
+        ).send();
+
+    } else if (failedblocks == 0 && totalblocks == producedblocks && producerI -> warning == WARNING_FLAGGED) updatewarning(owner, producer, WARNING_CLEAR);
 }
 
 std::vector<struct blockbase::producers> blockbase::checkbadprods(eosio::name owner) {
