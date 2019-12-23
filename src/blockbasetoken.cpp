@@ -243,29 +243,29 @@ void blockbasetoken::prodpunish(const name& owner, const name& contract){
     }
 }
 
-void blockbasetoken::claimreward(const name& sidechain, const name& claimer, const name& contract) {
+void blockbasetoken::claimreward(const name& sidechain, const name& claimer) {
     require_auth(claimer);
     require_recipient(claimer);
 
     ledgers sidechainledger(get_self(), claimer.value);
     for(auto& ledger : sidechainledger){
         if(ledger.sidechain == sidechain){
-            auto reward = getreward(contract, claimer);
+            auto reward = getreward(BLOCKBASE_CONTRACT, claimer);
             asset payment_reward = asset(reward, symbol(symbol_code("BBT"), 4));
             action(
                 permission_level{get_self(), eosio::name("active")},
-                contract, eosio::name("resetreward"),
+                BLOCKBASE_CONTRACT, eosio::name("resetreward"),
                 std::make_tuple(ledger.sidechain, claimer)
             ).send();
             payment(ledger.sidechain, claimer, payment_reward);
-            if(!(isprod(contract, ledger.sidechain, claimer))){
+            if(!(isprod(BLOCKBASE_CONTRACT, ledger.sidechain, claimer))){
                 sidechainledger.erase(ledger);
             }
         }
     }
 }
 
-void blockbasetoken::claimstake(const name& claimer, const name& sidechain, const name& contract) {
+void blockbasetoken::claimstake(const name& sidechain, const name& claimer) {
     require_auth(claimer);
     check(is_account(sidechain), "sidechain account does not exist");
 
@@ -277,7 +277,7 @@ void blockbasetoken::claimstake(const name& claimer, const name& sidechain, cons
     check(ledger -> stake.is_valid(), "invalid stake quantity");
     check(ledger -> stake.amount > 0, "must transfer positive stake");
 
-    if(ledger -> owner == claimer && isstakerecoverable(contract, sidechain, claimer)){
+    if(ledger -> owner == claimer && isstakerecoverable(BLOCKBASE_CONTRACT, sidechain, claimer)){
         sub_stake(sidechain, claimer, ledger -> stake);
         add_balance(claimer, ledger -> stake, claimer);
     }
