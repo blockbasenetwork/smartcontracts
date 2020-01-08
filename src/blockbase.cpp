@@ -45,7 +45,6 @@
     void blockbase::configchain(eosio::name owner, blockbase::contractinfo infojson){
         require_auth(owner);
 
-        clientIndex _clients(_self, owner.value);
         stateIndex _states(_self, owner.value);
         producersIndex _producers(_self, owner.value);
         auto state = _states.find(owner.value);
@@ -120,7 +119,6 @@
         producersIndex _producers(_self, owner.value);
         stateIndex _states(_self, owner.value);
         infoIndex _infos(_self, owner.value);
-        candidatesIndex _candidates(_self, owner.value);
 
         auto state = _states.find(owner.value);
         auto info = _infos.find(owner.value);
@@ -205,7 +203,6 @@
 
         infoIndex _infos(_self, owner.value);
         stateIndex _states(_self, owner.value);
-        producersIndex _producers(_self, owner.value);
         auto state = _states.find(owner.value);
         auto info = _infos.find(owner.value);
         check(state != _states.end() && state->startchain != false && state -> ipreceivetime != false, "The chain is not in the correct state, please check the current state of the chain. \n");
@@ -255,7 +252,6 @@
         require_auth(producer);
 
         stateIndex _states(_self, owner.value);
-        infoIndex _infos(_self, owner.value);
 
         auto state = _states.find(owner.value);
         check(state != _states.end() && state -> startchain != false && state -> ipsendtime != false, "The chain is not in the correct state, please check the current state of the chain. \n");
@@ -361,7 +357,6 @@
      void blockbase::iamready(eosio::name owner, eosio::name producer) {
         require_auth(producer);
         producersIndex _producers(_self, owner.value);
-        currentprodIndex _currentprods(_self, owner.value);
         auto producerrecord = _producers.find(producer.value);
         check(producerrecord != _producers.end(), "This producer doesn't exist. \n");
         check(producerrecord -> isready != true, "This producer is already ready. \n");
@@ -394,7 +389,6 @@
         stateIndex _states(_self, owner.value);
         clientIndex _clients(_self, owner.value);
         currentprodIndex _currentprods(_self, owner.value);
-        producersIndex _producers(_self, owner.value);
         blockscountIndex _blockscount(_self, owner.value);
 
         auto info = _infos.find(owner.value);
@@ -437,7 +431,6 @@
         require_auth(owner);
 
         blockheadersIndex _blockheaders(_self, owner.value);
-        currentprodIndex _currentprods(_self, owner.value);
         std::vector<blockbase::blockheaders> lastblock = blockbase::getlastblock(owner);
         auto blocktovalidate = _blockheaders.find((--_blockheaders.end()) -> sequencenumber);
         if(std::distance(_blockheaders.begin(), _blockheaders.end()) > 0){
@@ -483,7 +476,6 @@
         stateIndex _states(_self, owner.value);
         clientIndex _clients(_self, owner.value);
         currentprodIndex _currentprods(_self, owner.value);
-        producersIndex _producers(_self, owner.value);
         candidatesIndex _candidates(_self, owner.value);
         blacklistIndex _blacklists(_self, owner.value);
         rewardsIndex _rewards(_self, owner.value);

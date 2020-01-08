@@ -33,13 +33,9 @@ void blockbase::computation(eosio::name owner) {
 }
 //TODO States not used in this method - to remove.
 void blockbase::manageprod(eosio::name owner) {
-    stateIndex _states(_self, owner.value);
     infoIndex _infos(_self, owner.value);
-    producersIndex _producers(_self, owner.value);
-    auto state = _states.find(owner.value);
-    auto info = _infos.find(owner.value);
     auto numberofproducersrequired = _infos.find(owner.value)->requirednumberofproducers;
-     std::vector<struct producers> producerstoremove = checkbadprods(owner);
+    std::vector<struct producers> producerstoremove = checkbadprods(owner);
     if(producerstoremove.size() > 0){
         deleteips(owner, producerstoremove);
         deleteprods(owner, producerstoremove);
@@ -50,10 +46,8 @@ void blockbase::manageprod(eosio::name owner) {
 }
 
 void blockbase::enoughclientstake(eosio::name owner) {
-    stateIndex _states(_self, owner.value);
     infoIndex _infos(_self, owner.value);
     auto info = _infos.find(owner.value);
-    auto state = _states.find(owner.value);
 
     asset clientstake = blockbasetoken::get_stake(BLOCKBASE_TOKEN, owner, owner);
 

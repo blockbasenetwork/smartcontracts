@@ -126,7 +126,7 @@
         if(info != _infos.end()) _infos.erase(info);
          
         _infos.emplace(owner, [&](auto &infoI) {
-               infoI.key = owner;
+            infoI.key = owner;
             infoI.paymentperblock = infojson.paymentperblock;
             infoI.minimumcandidatestake = infojson.minimumcandidatestake;
             infoI.requirednumberofproducers = infojson.requirednumberofproducers;

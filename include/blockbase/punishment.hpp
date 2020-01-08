@@ -1,6 +1,5 @@
 void blockbase::changewarning(eosio::name owner, eosio::name producer, uint16_t failedblocks, uint16_t producedblocks) {
     producersIndex _producers(_self, owner.value);
-    blacklistIndex _blacklists(_self, owner.value);
     auto producerI = _producers.find(producer.value);
     uint16_t totalblocks = producedblocks + failedblocks;
     uint16_t totalfailedblockspermited = floor(THRESHOLD_FOR_PUNISH * totalblocks);
