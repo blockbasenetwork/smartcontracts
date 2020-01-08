@@ -189,7 +189,7 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     [[eosio::action]] void resetreward(eosio::name sidechain, eosio::name claimer);
     [[eosio::action]] void verifyblock(eosio::name owner, eosio::name producer, std::string blockhash);
     [[eosio::action]] void endservice(eosio::name owner);
-    [[eosio::action]] void blacklistprod(eosio::name owner, eosio::name producer);
+    [[eosio::action]] void blacklistprod(eosio::name owner);
 
     bool comparenumbers(uint16_t variablenumber, uint16_t fixednumber);
     bool issecretvalid(eosio::name owner, eosio::name name, checksum256 secret);

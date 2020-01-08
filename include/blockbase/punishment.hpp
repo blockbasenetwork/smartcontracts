@@ -5,11 +5,11 @@ void blockbase::changewarning(eosio::name owner, eosio::name producer, uint16_t 
     uint16_t totalblocks = producedblocks + failedblocks;
     uint16_t totalfailedblockspermited = floor(THRESHOLD_FOR_PUNISH * totalblocks);
     if (failedblocks > 0 && failedblocks < totalfailedblockspermited) {
-        if (producerI -> warning == WARNING_FLAGGED)
+        if (producerI -> warning == WARNING_FLAGGED) 
         {
             updatewarning(owner, producer, WARNING_PUNISH);
-        }
-        else
+        } 
+        else 
         {
             updatewarning(owner, producer, WARNING_FLAGGED);
         }
@@ -18,7 +18,7 @@ void blockbase::changewarning(eosio::name owner, eosio::name producer, uint16_t 
     {
         updatewarning(owner, producer, WARNING_PUNISH);
     } 
-    else if (failedblocks == 0 && totalblocks == producedblocks && producerI -> warning == WARNING_FLAGGED)
+    else if (failedblocks == 0 && totalblocks == producedblocks && producerI -> warning == WARNING_FLAGGED) 
     {
         updatewarning(owner, producer, WARNING_CLEAR);
     }
@@ -27,7 +27,9 @@ void blockbase::changewarning(eosio::name owner, eosio::name producer, uint16_t 
 std::vector<struct blockbase::producers> blockbase::checkbadprods(eosio::name owner) {
     producersIndex _producers(_self, owner.value);
     std::vector<struct blockbase::producers> producerstab;
-    for (auto& producer : _producers) if(producer.worktimeinseconds + producer.startinsidechaindate <= eosio::current_block_time().to_time_point().sec_since_epoch() || producer.warning == WARNING_PUNISH) producerstab.push_back(producer);
+    for(auto& producer : _producers) {
+        if(producer.warning == WARNING_PUNISH) producerstab.push_back(producer);
+    }
     return producerstab;
 }
 
