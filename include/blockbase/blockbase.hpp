@@ -1,6 +1,6 @@
 using namespace eosio;
 
-static const eosio::name BLOCKBASE_TOKEN = eosio::name("jungletttt33");
+static const eosio::name BLOCKBASE_TOKEN = eosio::name("blockbasetkn");
 static const std::string BLOCKBASE_TOKEN_SYMBOL = "BBT";
 
 class[[eosio::contract]] blockbase : public eosio::contract {
