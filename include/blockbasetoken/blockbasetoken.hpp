@@ -27,7 +27,7 @@ namespace eosio {
         public:
             using contract::contract;
 
-            const eosio::name BLOCKBASE_CONTRACT = eosio::name("blockbase");
+            const eosio::name BLOCKBASE_CONTRACT = eosio::name("blockbaseopr");
 
             [[eosio::action]]
             void create(const name&   issuer,

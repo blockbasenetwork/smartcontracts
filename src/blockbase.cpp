@@ -431,8 +431,14 @@
         require_auth(owner);
 
         blockheadersIndex _blockheaders(_self, owner.value);
-        std::vector<blockbase::blockheaders> lastblock = blockbase::getlastblock(owner);
+        infoIndex _infos (_self, owner.value);
+
+        auto info = _infos.find(owner.value);
+        std::vector<struct blockbase::blockheaders> lastblock = blockbase::getlastblock(owner);
         auto blocktovalidate = _blockheaders.find((--_blockheaders.end()) -> sequencenumber);
+
+        if (lastblock.size() > 0) check(lastblock.back().timestamp + (info -> blocktimeduration) < eosio::current_block_time().to_time_point().sec_since_epoch(), "Time to verify block already passed");
+
         if(std::distance(_blockheaders.begin(), _blockheaders.end()) > 0){
             if (blocktovalidate -> blockhash == blockhash && blocktovalidate -> isverified == false && blocktovalidate -> islastblock == false) {
                 _blockheaders.modify(blocktovalidate, _self, [&](auto &newblockI) {
