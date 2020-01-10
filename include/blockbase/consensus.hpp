@@ -7,7 +7,6 @@ void blockbase::computation(eosio::name owner) {
     uint8_t producedblocks = 0, failedblocks = 0;
     auto blockpayment = _infos.find(owner.value)->paymentperblock;
     std::vector<blockbase::producers> readyproducers = blockbase::getreadyprods(owner);
-    bool toblacklist = false;
     for (struct blockbase::producers &producer : readyproducers) {
         auto producerblockstable = _blockscount.find(producer.key.value);
         if (producerblockstable != _blockscount.end()) {
@@ -17,21 +16,13 @@ void blockbase::computation(eosio::name owner) {
         changewarning(owner, producer.key, failedblocks, producedblocks);
         
         auto producerwarning = _producers.find(producer.key.value);
-        if(producerwarning -> warning == WARNING_PUNISH) toblacklist = true;
         if(producerwarning -> warning != WARNING_PUNISH && producedblocks > 0) rewardprod(owner, producer.key, (producedblocks * (blockpayment)));
-    }
-    if(toblacklist) {       
-        action(
-            permission_level{owner, eosio::name("active")}, 
-            _self, eosio::name("blacklistprod"), 
-            std::make_tuple(owner)
-        ).send();
     }
     startcount(owner, true);
     enoughclientstake(owner);
     eosio::print("Computation has ended. \n");
 }
-//TODO States not used in this method - to remove.
+
 void blockbase::manageprod(eosio::name owner) {
     infoIndex _infos(_self, owner.value);
     auto numberofproducersrequired = _infos.find(owner.value)->requirednumberofproducers;
