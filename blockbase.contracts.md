@@ -78,7 +78,7 @@ Triggered when the ip send time ends and the transaction is executed. This actio
 
 Launches a scheduled deferred transaction to be executed when the time defined in the configuration ends.
 
-<h1 class="contract">prodtime</h1>
+<h1 class="contract">startprodtime</h1>
 
 ---
 spec_version: "0.2.0"
@@ -157,7 +157,7 @@ icon:
 
 This action will be responsible for the rewards reset. It will receive the {{ owner }} and the {{ producer }} and will be called by the token account This action will reset the reward from a {{ producer }} by modifying the multi index table. 
 
-<h1 class="contract">blistremoval</h1>
+<h1 class="contract">removeblisted</h1>
 
 ---
 spec_version: "0.2.0"

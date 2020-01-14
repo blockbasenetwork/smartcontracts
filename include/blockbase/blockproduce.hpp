@@ -1,138 +1,139 @@
-bool blockbase::isblockprod(eosio::name owner, eosio::name producer){
+bool blockbase::HasBlockBeenProduced(eosio::name owner, eosio::name producer){
     currentprodIndex _currentprods(_self, owner.value);
-    auto currentproducer = _currentprods.find(CKEY.value);
-    return currentproducer != _currentprods.end() && currentproducer -> isblockproduced == false;
+    auto currentProducer = _currentprods.find(CKEY.value);
+    return currentProducer != _currentprods.end() && currentProducer -> has_produced_block == false;
 }
 
-bool blockbase::isprodtime(eosio::name owner, eosio::name producer) {
+bool blockbase::IsProducerTurn(eosio::name owner, eosio::name producer) {
     currentprodIndex _currentprods(_self, owner.value);
     infoIndex _infos (_self, owner.value);
     producersIndex _producers(_self, owner.value);
     blockheadersIndex _blockheaders(_self, owner.value);
 
-    auto currentproducer = _currentprods.find(CKEY.value);
+    auto currentProducer = _currentprods.find(CKEY.value);
     auto info = _infos.find(owner.value);
-    auto producerI = _producers.find(producer.value);
+    auto producerInSidechain = _producers.find(producer.value);
 
-    if (currentproducer == _currentprods.end() || producerI == _producers.end() || currentproducer -> producer != producer) return false;
-    std::vector<blockbase::producers> readyproducers = blockbase::getreadyprods(owner);
-    if (std::distance(_blockheaders.begin(), _blockheaders.end()) > 0 && readyproducers.size() >= 2 ) {	   
-        if ((--_blockheaders.end()) -> producer == producerI -> key.to_string() &&
-            ((--_blockheaders.end()) -> timestamp + ((info -> blocktimeduration) * readyproducers.size())) > eosio::current_block_time().to_time_point().sec_since_epoch()) return false;
+    if (currentProducer == _currentprods.end() || producerInSidechain == _producers.end() || currentProducer -> producer != producer) return false;
+    std::vector<blockbase::producers> readyProducersInSidechain = blockbase::GetReadyProducers(owner);
+    if (std::distance(_blockheaders.begin(), _blockheaders.end()) > 0 && readyProducersInSidechain.size() >= 2 ) {	   
+        if ((--_blockheaders.end()) -> producer == producerInSidechain -> key.to_string() &&
+            ((--_blockheaders.end()) -> timestamp + ((info -> block_time_in_seconds) * readyProducersInSidechain.size())) > eosio::current_block_time().to_time_point().sec_since_epoch()) return false;
     }
     return true;
 }
 
 //TODO: Check timestamp validation
-bool blockbase::isblockvalid(eosio::name owner, blockbase::blockheaders block) {
+bool blockbase::IsBlockValid(eosio::name owner, blockbase::blockheaders block) {
     infoIndex _infos (_self, owner.value);
     blockheadersIndex _blockheaders(_self, owner.value);
-    uint64_t blockstablesize = std::distance(_blockheaders.begin(), _blockheaders.end());
+    uint64_t blockHeadersTableSize = std::distance(_blockheaders.begin(), _blockheaders.end());
     auto info = _infos.find(owner.value);
 
-    std::vector<struct blockbase::blockheaders> lastblocklist = getlastblock(owner);
+    std::vector<struct blockbase::blockheaders> lastestBlockList = GetLatestBlock(owner);
 
-    if(block.timestamp < eosio::current_block_time().to_time_point().sec_since_epoch() - (3*info->blocktimeduration) || block.timestamp > eosio::current_block_time().to_time_point().sec_since_epoch()) return false;
+    if(block.timestamp < eosio::current_block_time().to_time_point().sec_since_epoch() - (3*info->block_time_in_seconds) || block.timestamp > eosio::current_block_time().to_time_point().sec_since_epoch()) return false;
 
-    if(lastblocklist.size() == 0 && blockstablesize == 0 && block.sequencenumber == 1) return true;
+    if(lastestBlockList.size() == 0 && blockHeadersTableSize == 0 && block.sequence_number == 1) return true;
 
-    if(lastblocklist.size() > 0 && blockstablesize <= 0) {
-        auto lastblock = lastblocklist.back();
-        if(lastblock.sequencenumber + 1 == block.sequencenumber && lastblock.blockhash == block.previousblockhash) return true;
+    if(lastestBlockList.size() > 0 && blockHeadersTableSize <= 0) {
+        auto lastblock = lastestBlockList.back();
+        if(lastblock.sequence_number + 1 == block.sequence_number && lastblock.block_hash == block.previous_block_hash) return true;
     }
 
-    if(blockstablesize > 0){
-        auto blockheader = --_blockheaders.end();
-        if(blockheader -> sequencenumber + 1 == block.sequencenumber && blockheader -> blockhash == block.previousblockhash) return true;
+    if(blockHeadersTableSize > 0){
+        auto blockHeader = --_blockheaders.end();
+        if(blockHeader -> sequence_number + 1 == block.sequence_number && blockHeader -> block_hash == block.previous_block_hash) return true;
     }
     return false;
 }
 
-std::vector<struct blockbase::blockheaders> blockbase::getlastblock(eosio::name owner) {
+std::vector<struct blockbase::blockheaders> blockbase::GetLatestBlock(eosio::name owner) {
     blockheadersIndex _blockheaders(_self, owner.value);
-    std::vector<struct blockbase::blockheaders> blocklist;
-    for(auto block : _blockheaders) if(block.islastblock) blocklist.push_back(block);
-    return blocklist;
+    std::vector<struct blockbase::blockheaders> blockHeaderListToReturn;
+    for(auto block : _blockheaders) if(block.is_latest_block) blockHeaderListToReturn.push_back(block);
+    return blockHeaderListToReturn;
 }
 
-std::vector<struct blockbase::producers> blockbase::getreadyprods(eosio::name owner) {
+std::vector<struct blockbase::producers> blockbase::GetReadyProducers(eosio::name owner) {
     producersIndex _producers(_self, owner.value);
-    std::vector<struct blockbase::producers> producerslist;
+    std::vector<struct blockbase::producers> readyProducersListToReturn;
     if(std::distance(_producers.begin(), _producers.end()) > 0){ 
-        for(auto producer : _producers) if(producer.isready) producerslist.push_back(producer);
+        for(auto producer : _producers) if(producer.is_ready_to_produce) readyProducersListToReturn.push_back(producer);
     }
-    return producerslist;
+    return readyProducersListToReturn;
 }
 
-void blockbase::insertblock(eosio::name owner, eosio::name producer, blockbase::blockheaders block) {
+void blockbase::AddBlockDAM(eosio::name owner, eosio::name producer, blockbase::blockheaders block) {
     blockheadersIndex _blockheaders(_self, owner.value);
     currentprodIndex _currentprods(_self, owner.value);
     infoIndex _infos(_self, owner.value);
     auto info = _infos.find(owner.value);
-    auto currentproducer = _currentprods.find(CKEY.value);
+    auto currentProducer = _currentprods.find(CKEY.value);
     
-    _blockheaders.emplace(_self, [&](auto &newblockI) {
-        newblockI.producer = block.producer;
-        newblockI.blockhash = block.blockhash;
-        newblockI.previousblockhash = block.previousblockhash;
-        newblockI.sequencenumber = block.sequencenumber;
-        newblockI.timestamp = block.timestamp;
-        newblockI.transactionnumber = block.transactionnumber;
-        newblockI.producersignature = block.producersignature;
-        newblockI.merkletreeroothash = block.merkletreeroothash;
-        newblockI.isverified = false;
-        newblockI.islastblock = false;
+    _blockheaders.emplace(_self, [&](auto &newBlockI) {
+        newBlockI.producer = block.producer;
+        newBlockI.block_hash = block.block_hash;
+        newBlockI.previous_block_hash = block.previous_block_hash;
+        newBlockI.sequence_number = block.sequence_number;
+        newBlockI.timestamp = block.timestamp;
+        newBlockI.transactions_count = block.transactions_count;
+        newBlockI.producer_signature = block.producer_signature;
+        newBlockI.merkletree_root_hash = block.merkletree_root_hash;
+        newBlockI.is_verified = false;
+        newBlockI.is_latest_block = false;
     });
 
-    if(std::distance(_blockheaders.begin(), _blockheaders.end()) > (info->blocksbetweensettlement)) _blockheaders.erase(_blockheaders.begin());
+    if(std::distance(_blockheaders.begin(), _blockheaders.end()) > (info -> num_blocks_between_settlements)) _blockheaders.erase(_blockheaders.begin());
     
-    _currentprods.modify(currentproducer, producer, [&](auto &cproducer) {
-        cproducer.isblockproduced = true;
+    _currentprods.modify(currentProducer, producer, [&](auto &currentProducerI) {
+        currentProducerI.has_produced_block = true;
     });
     eosio::print("  Block valid and submitted. \n");
 }
 
-void blockbase::startcount(eosio::name owner, bool computation) {
+void blockbase::ResetBlockCountDAM(eosio::name owner) {
     producersIndex _producers(_self, owner.value);
     blockscountIndex _blockscount(_self, owner.value);
     for(auto producer : _producers) {
-        auto blockcountprod = _blockscount.find(producer.key.value);
-        if(blockcountprod == _blockscount.end()){
-            _blockscount.emplace(owner, [&](auto &blockcount) {
-                blockcount.key = producer.key;
-                blockcount.blocksfailed = 0;
-                blockcount.blocksproduced = 0;
+        auto producerBlockCount = _blockscount.find(producer.key.value);
+        if(producerBlockCount == _blockscount.end()){
+            _blockscount.emplace(owner, [&](auto &blockCountI){
+                blockCountI.key = producer.key;
+                blockCountI.num_blocks_failed = 0;
+                blockCountI.num_blocks_produced = 0;
             });
-        } else if (computation) {
-            _blockscount.modify(blockcountprod, owner, [&](auto &blockcount) {
-                blockcount.blocksfailed = 0;
-                blockcount.blocksproduced = 0;
+        } else {
+            _blockscount.modify(producerBlockCount, owner, [&](auto &blockCountI) {
+                blockCountI.num_blocks_failed = 0;
+                blockCountI.num_blocks_produced = 0;
             });
         }
     }
 }
 
-void blockbase::decisionmark(eosio::name owner){
+void blockbase::ReOpenCandidaturePhaseIfRequired(eosio::name owner){
     stateIndex _states(_self, owner.value);
     producersIndex _producers(_self, owner.value);
     currentprodIndex _currentprods(_self, owner.value);
     infoIndex _infos(_self, owner.value);
     auto info = _infos.find(owner.value);
     auto state = _states.find(owner.value);
-    int32_t numberofproducersrequired = info -> requirednumberofproducers;
-    uint8_t producersize = std::distance(_producers.begin(), _producers.end());
-    if (producersize < numberofproducersrequired) {
-        if (producersize < ceil(numberofproducersrequired * PRODUCERS_IN_CHAIN_THRESHOLD)) {
-            if(state -> candidaturetime == false && state -> secrettime == false && state -> ipsendtime == false && state -> ipreceivetime == false) {
-                changestate({owner, true, false, true, false, false, false, false});
+    int32_t numberOfProducersRequired = info -> number_of_producers_required;
+    uint8_t producersInSidechainCount = std::distance(_producers.begin(), _producers.end());
+
+    if (producersInSidechainCount < numberOfProducersRequired) {
+        if (producersInSidechainCount < ceil(numberOfProducersRequired * MIN_PRODUCERS_IN_CHAIN_THRESHOLD)) {
+            if(state -> is_candidature_phase == false && state -> is_secret_sending_phase == false && state -> is_ip_sending_phase == false && state -> is_ip_retrieving_phase == false) {
+                ChangeContractStateDAM({owner, true, false, true, false, false, false, false});
                 eosio::print("  Number of producers on the pool is below threshold, mining stoped and candidature time starting... \n");
-                setenddate(owner, CANDIDATURE_TIME_ID);
+                SetEndDateDAM(owner, CANDIDATURE_TIME_ID);
             }
-        } else if (producersize >= ceil(numberofproducersrequired * PRODUCERS_IN_CHAIN_THRESHOLD) && producersize < numberofproducersrequired) {
-            if(state -> candidaturetime == false && state -> secrettime == false && state -> ipsendtime == false && state -> ipreceivetime == false) {
-                changestate({owner, true, false, true, false, false, false, true});
+        } else if (producersInSidechainCount >= ceil(numberOfProducersRequired * MIN_PRODUCERS_IN_CHAIN_THRESHOLD) && producersInSidechainCount < numberOfProducersRequired) {
+            if(state -> is_candidature_phase == false && state -> is_secret_sending_phase == false && state -> is_ip_sending_phase == false && state -> is_ip_retrieving_phase == false) {
+                ChangeContractStateDAM({owner, true, false, true, false, false, false, true});
                 eosio::print("  Starting candidature time but mining continues. \n");
-                setenddate(owner, CANDIDATURE_TIME_ID);
+                SetEndDateDAM(owner, CANDIDATURE_TIME_ID);
             }
             eosio::print("  Candidature in progress... \n");
         }
@@ -140,13 +141,13 @@ void blockbase::decisionmark(eosio::name owner){
     eosio::print("  Producer changed. \n");
 }
 
-void blockbase::eraseblockcount(eosio::name owner) {
-    producersIndex _producers(_self, owner.value);
+void blockbase::RemoveBlockCountDAM(eosio::name owner, std::vector<struct producers> producers) {
     blockscountIndex _blockscount(_self, owner.value);
-    std::vector<eosio::name> bname;
-    for(auto bcount : _blockscount) {
-        auto producertemp = _producers.find(bcount.key.value);
-        if(_producers.end() == producertemp) bname.push_back(bcount.key);
+    for(auto producerToRemove : producers) {
+        auto producerBlockCountToRemove = _blockscount.find(producerToRemove.key.value);
+        if(_blockscount.end() != producerBlockCountToRemove) {
+            _blockscount.erase(producerBlockCountToRemove);
+        }
     }
-    if(bname.size() != 0) for(auto producer : bname) _blockscount.erase(_blockscount.find(producer.value));
+  
 }

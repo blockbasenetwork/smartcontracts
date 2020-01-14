@@ -215,7 +215,7 @@ void blockbasetoken::sub_stake(const name& sidechain, const name& user, const as
 
 void blockbasetoken::prodpunish(const name& owner, const name& contract){
     require_auth(owner);
-    std::map<eosio::name, asset> prodpunish = getbadprods(contract, owner);
+    std::map<eosio::name, asset> prodpunish = GetProducersToPunishInfo(contract, owner);
     if(prodpunish.size() > 0){
         for (auto const& producer : prodpunish) {
         
@@ -250,7 +250,7 @@ void blockbasetoken::claimreward(const name& sidechain, const name& claimer) {
     ledgers sidechainledger(get_self(), claimer.value);
     for(auto& ledger : sidechainledger){
         if(ledger.sidechain == sidechain){
-            auto reward = getreward(BLOCKBASE_CONTRACT, claimer);
+            auto reward = GetProducerRewardAmount(BLOCKBASE_CONTRACT, claimer);
             asset payment_reward = asset(reward, symbol(symbol_code("BBT"), 4));
             action(
                 permission_level{get_self(), eosio::name("active")},
@@ -258,7 +258,7 @@ void blockbasetoken::claimreward(const name& sidechain, const name& claimer) {
                 std::make_tuple(ledger.sidechain, claimer)
             ).send();
             payment(ledger.sidechain, claimer, payment_reward);
-            if(!(isprod(BLOCKBASE_CONTRACT, ledger.sidechain, claimer))){
+            if(!(IsProducer(BLOCKBASE_CONTRACT, ledger.sidechain, claimer))){
                 sidechainledger.erase(ledger);
             }
         }
@@ -277,7 +277,7 @@ void blockbasetoken::claimstake(const name& sidechain, const name& claimer) {
     check(ledger -> stake.is_valid(), "invalid stake quantity");
     check(ledger -> stake.amount > 0, "must transfer positive stake");
 
-    if(ledger -> owner == claimer && isstakerecoverable(BLOCKBASE_CONTRACT, sidechain, claimer)){
+    if(ledger -> owner == claimer && IsStakeRecoverable(BLOCKBASE_CONTRACT, sidechain, claimer)){
         sub_stake(sidechain, claimer, ledger -> stake);
         add_balance(claimer, ledger -> stake, claimer);
     }
