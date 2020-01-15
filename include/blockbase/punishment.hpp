@@ -3,21 +3,18 @@ void blockbase::changewarning(eosio::name owner, eosio::name producer, uint16_t 
     auto producerI = _producers.find(producer.value);
     uint16_t totalblocks = producedblocks + failedblocks;
     uint16_t totalfailedblockspermited = floor(THRESHOLD_FOR_PUNISH * totalblocks);
-    if (failedblocks > 0 && failedblocks < totalfailedblockspermited) {
-        if (producerI -> warning == WARNING_FLAGGED) 
+    if (failedblocks >= totalfailedblockspermited) 
+    {
+        if (producerI -> warning == WARNING_FLAGGED)
         {
             updatewarning(owner, producer, WARNING_PUNISH);
-        } 
-        else 
+        }
+        else
         {
             updatewarning(owner, producer, WARNING_FLAGGED);
         }
     } 
-    else if (failedblocks > totalfailedblockspermited && failedblocks <= totalblocks) 
-    {
-        updatewarning(owner, producer, WARNING_PUNISH);
-    } 
-    else if (failedblocks == 0 && totalblocks == producedblocks && producerI -> warning == WARNING_FLAGGED) 
+    else if (failedblocks == 0 && producerI -> warning == WARNING_FLAGGED) 
     {
         updatewarning(owner, producer, WARNING_CLEAR);
     }
