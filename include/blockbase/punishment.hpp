@@ -3,21 +3,18 @@ void blockbase::EvaluateProducer(eosio::name owner, eosio::name producer, uint16
     auto producerInTable = _producers.find(producer.value);
     uint16_t totalBlocks = producedBlocks + failedBlocks;
     uint16_t totalFailedBlocksPermited = floor(MIN_BLOCKS_THRESHOLD_FOR_PUNISH * totalBlocks);
-    if (failedBlocks > 0 && failedBlocks < totalFailedBlocksPermited) {
-        if (producerInTable -> warning_type == WARNING_TYPE_FLAGGED) 
+    if (failedBlocks >= totalFailedBlocksPermited) 
+    {
+        if (producerInTable -> warning_type == WARNING_TYPE_FLAGGED)
         {
             UpdateWarningDAM(owner, producer, WARNING_TYPE_PUNISH);
-        } 
-        else 
+        }
+        else
         {
             UpdateWarningDAM(owner, producer, WARNING_TYPE_FLAGGED);
         }
     } 
-    else if (failedBlocks > totalFailedBlocksPermited && failedBlocks <= totalBlocks) 
-    {
-        UpdateWarningDAM(owner, producer, WARNING_TYPE_PUNISH);
-    } 
-    else if (failedBlocks == 0 && totalBlocks == producedBlocks && producerInTable -> warning_type == WARNING_TYPE_FLAGGED) 
+    else if (failedBlocks == 0 && producerInTable -> warning_type == WARNING_TYPE_FLAGGED) 
     {
         UpdateWarningDAM(owner, producer, WARNING_TYPE_CLEAR);
     }
