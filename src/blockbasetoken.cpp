@@ -250,7 +250,7 @@ void blockbasetoken::claimreward(const name& sidechain, const name& claimer) {
     ledgers sidechainledger(get_self(), claimer.value);
     for(auto& ledger : sidechainledger){
         if(ledger.sidechain == sidechain){
-            auto reward = GetProducerRewardAmount(BLOCKBASE_CONTRACT, claimer);
+            auto reward = GetProducerRewardAmount(BLOCKBASE_CONTRACT, sidechain, claimer);
             asset payment_reward = asset(reward, symbol(symbol_code("BBT"), 4));
             action(
                 permission_level{get_self(), eosio::name("active")},

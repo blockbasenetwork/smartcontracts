@@ -331,7 +331,7 @@
         rewardsIndex _rewards(_self, producer.value);
         producersIndex _producers(_self, owner.value);
 
-        auto rewardForProducer = _rewards.find(producer.value);
+        auto rewardForProducer = _rewards.find(owner.value);
         auto producerI = _producers.find(producer.value);
         if(rewardForProducer != _rewards.end() && rewardForProducer -> reward > 0){
             _rewards.modify(rewardForProducer, same_payer, [&](auto &rewardI) {

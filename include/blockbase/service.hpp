@@ -25,9 +25,9 @@ static std::map<eosio::name, asset> GetProducersToPunishInfo(const eosio::name& 
     return producersToPunish;
 }
 
-static uint64_t GetProducerRewardAmount(eosio::name contract, eosio::name claimer) {
+static uint64_t GetProducerRewardAmount(eosio::name contract, eosio::name sidechain, eosio::name claimer) {
     blockbase::rewardsIndex rewards(contract, claimer.value);
-    auto claimerReward = rewards.find(claimer.value);
+    auto claimerReward = rewards.find(sidechain.value);
     return claimerReward -> reward;
 }
 

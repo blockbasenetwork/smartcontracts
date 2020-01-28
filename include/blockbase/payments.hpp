@@ -2,10 +2,10 @@
 
 void blockbase::RewardProducerDAM(eosio::name owner ,eosio::name producer, uint64_t quantity) {
     rewardsIndex _rewards(_self, producer.value);
-    auto rewardsForProducer = _rewards.find(producer.value);
+    auto rewardsForProducer = _rewards.find(owner.value);
     if(rewardsForProducer == _rewards.end()) {
         _rewards.emplace(owner, [&](auto &reward) {
-            reward.key = producer;
+            reward.key = owner;
             reward.reward = quantity;
         });
     } else {
