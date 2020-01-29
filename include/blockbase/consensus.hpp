@@ -1,5 +1,4 @@
 #pragma region producing Methods
-//TODO caso miner fique ready a meio do mining, impedir que seja expulso por nao minar
 void blockbase::RunSettlement(eosio::name owner) {
     infoIndex _infos(_self, owner.value);
     blockscountIndex _blockscount(_self, owner.value);
