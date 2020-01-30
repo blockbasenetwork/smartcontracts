@@ -184,6 +184,7 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     [[eosio::action]] void rcandidate(eosio::name owner, eosio::name name);
     [[eosio::action]] void addencryptip(eosio::name owner, eosio::name name, std::vector<std::string> encryptedIps);
     [[eosio::action]] void changecprod(eosio::name owner);
+    [[eosio::action]] void extendwrktime(eosio::name owner, eosio::name producer, uint64_t &worktimeToAddInSeconds);
     [[eosio::action]] void addblock(eosio::name owner, eosio::name producer, blockbase::blockheaders block);
     [[eosio::action]] void exitrequest(eosio::name owner, eosio::name producer);
     [[eosio::action]] void removeblisted(eosio::name owner, eosio::name producer);

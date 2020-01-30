@@ -379,6 +379,17 @@
         eosio::print("Exit request sucessfull, producer will leave in one day. \n");
     }
 
+    [[eosio::action]]
+    void blockbase::extendwrktime(eosio::name owner, eosio::name producer, uint64_t &worktimeToAddInSeconds) {
+        require_auth(producer);
+        producersIndex _producers(_self, owner.value);
+        auto producerI = _producers.find(producer.value);
+        check(producerI != _producers.end(), "Producer doesn't exist. \n");
+        _producers.modify(producerI, producer, [&](auto &producerIT){
+            producerIT.work_duration_in_seconds = producerIT.work_duration_in_seconds + worktimeToAddInSeconds;
+        });
+    }
+
     [[eosio::action]] 
     void blockbase::changecprod(eosio::name owner) {
         require_auth(owner);
