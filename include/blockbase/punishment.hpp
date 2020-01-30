@@ -2,7 +2,7 @@ void blockbase::EvaluateProducer(eosio::name owner, eosio::name producer, uint16
     producersIndex _producers(_self, owner.value);
     auto producerInTable = _producers.find(producer.value);
     uint16_t totalBlocks = producedBlocks + failedBlocks;
-    uint16_t totalFailedBlocksPermited = floor(MIN_BLOCKS_THRESHOLD_FOR_PUNISH * totalBlocks);
+    uint16_t totalFailedBlocksPermited = ceil(MIN_BLOCKS_THRESHOLD_FOR_PUNISH * totalBlocks);
     if (failedBlocks >= totalFailedBlocksPermited) 
     {
         if (producerInTable -> warning_type == WARNING_TYPE_FLAGGED)

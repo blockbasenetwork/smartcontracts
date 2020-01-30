@@ -27,7 +27,7 @@ class[[eosio::contract]] blockbase : public eosio::contract {
 
     // Contract Info
     const double MIN_PRODUCERS_IN_CHAIN_THRESHOLD = 0.40;
-    const double MIN_BLOCKS_THRESHOLD_FOR_PUNISH = 0.70;
+    const double MIN_BLOCKS_THRESHOLD_FOR_PUNISH = 0.80;
 
     //TODO - change to enum
     const uint8_t CHANGE_PRODUCER_ID = 0;
