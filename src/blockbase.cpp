@@ -173,7 +173,6 @@
 
         std::vector<struct blockbase::producers> producersWhoFailedToSendIPsList = GetProducersWhoFailedToSendIPs(owner);
         if(producersWhoFailedToSendIPsList.size() > 0){
-            RemoveBlockCountDAM(owner);
             RemoveIPsDAM(owner, producersWhoFailedToSendIPsList);
             RemoveProducersDAM(owner, producersWhoFailedToSendIPsList);
 
