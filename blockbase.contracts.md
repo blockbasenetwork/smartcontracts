@@ -233,3 +233,14 @@ icon:
 ---
 
 This action will allow the {{ owner }} to end the service of the chain. This action enables a sidechain owner to delete the sidechain and clear the tables of their data. This action will receive and be paid by the {{ owner }}
+
+<h1 class="contract">extendwrktime</h1>
+
+---
+spec_version: "0.2.0"
+title: Extend Work Time
+summary: 'Allows the producer to extend his work time'
+icon:
+---
+
+Action ran in the smartcontract that will allow the {{ producer }} to extend his work time in a sidechain. This action enables the producer to increase his work time in a certain sidechain, submitting a {{ worktimeToAddInSeconds }} for the desired work time. This action will receive the {{ owner }} of the chain, the {{ producer }} that is requesting the time extension and the {{ worktimeToAddInSeconds }} for the desired extension. This action will be paid by the {{ producer }}
