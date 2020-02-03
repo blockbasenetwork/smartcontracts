@@ -186,7 +186,6 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     [[eosio::action]] void changecprod(eosio::name owner);
     [[eosio::action]] void extendwrktime(eosio::name owner, eosio::name producer, uint64_t &worktimeToAddInSeconds);
     [[eosio::action]] void addblock(eosio::name owner, eosio::name producer, blockbase::blockheaders block);
-    [[eosio::action]] void exitrequest(eosio::name owner, eosio::name producer);
     [[eosio::action]] void removeblisted(eosio::name owner, eosio::name producer);
     [[eosio::action]] void iamready(eosio::name owner, eosio::name producer);
     [[eosio::action]] void resetreward(eosio::name sidechain, eosio::name claimer);
@@ -238,5 +237,6 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     std::vector<struct blockbase::blockheaders> GetLatestBlock(eosio::name owner);
     std::vector<struct blockbase::producers> GetReadyProducers(eosio::name owner);
     std::map<eosio::name, asset> static GetProducersToPunishInfo(const name &contract, const name &owner);
+    void RemoveProducerWithWorktimeFinnished(eosio::name owner);
 #pragma endregion
 };

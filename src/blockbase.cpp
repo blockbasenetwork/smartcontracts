@@ -366,19 +366,6 @@
     }
 
     [[eosio::action]]
-     void blockbase::exitrequest(eosio::name owner, eosio::name producer){
-        require_auth(producer);
-        producersIndex _producers(_self, owner.value);
-        auto producerI = _producers.find(producer.value);
-        check(producerI != _producers.end(), "Producer doesn't exist. \n");
-        check(eosio::current_block_time().to_time_point().sec_since_epoch() <= (((producerI -> work_duration_in_seconds) + (producerI -> sidechain_start_date_in_seconds)) - MIN_WORKDAYS_IN_SECONDS), "  Producer is leaving in less then a day. \n");
-        _producers.modify(producerI, producer, [&](auto &producerIT) {
-            producerIT.work_duration_in_seconds = eosio::current_block_time().to_time_point().sec_since_epoch() - MIN_WORKDAYS_IN_SECONDS;
-        });
-        eosio::print("Exit request sucessfull, producer will leave in one day. \n");
-    }
-
-    [[eosio::action]]
     void blockbase::extendwrktime(eosio::name owner, eosio::name producer, uint64_t &worktimeToAddInSeconds) {
         require_auth(producer);
         producersIndex _producers(_self, owner.value);
