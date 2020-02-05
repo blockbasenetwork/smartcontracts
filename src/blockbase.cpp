@@ -469,6 +469,7 @@
             }
         }
         RemoveBadProducers(owner);
+        ReOpenCandidaturePhaseIfRequired(owner);
     }
 
     [[eosio::action]]
