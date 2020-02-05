@@ -124,11 +124,9 @@ void blockbase::ReOpenCandidaturePhaseIfRequired(eosio::name owner){
 
     if (producersInSidechainCount < numberOfProducersRequired) {
         if (producersInSidechainCount < ceil(numberOfProducersRequired * MIN_PRODUCERS_IN_CHAIN_THRESHOLD)) {
-            if(state -> is_candidature_phase == false && state -> is_secret_sending_phase == false && state -> is_ip_sending_phase == false && state -> is_ip_retrieving_phase == false) {
-                ChangeContractStateDAM({owner, true, false, true, false, false, false, false});
-                eosio::print("  Number of producers on the pool is below threshold, mining stoped and candidature time starting... \n");
-                SetEndDateDAM(owner, CANDIDATURE_TIME_ID);
-            }
+            ChangeContractStateDAM({owner, true, false, true, false, false, false, false});
+            eosio::print("  Number of producers on the pool is below threshold, mining stoped and candidature time starting... \n");
+            SetEndDateDAM(owner, CANDIDATURE_TIME_ID);
         } else if (producersInSidechainCount >= ceil(numberOfProducersRequired * MIN_PRODUCERS_IN_CHAIN_THRESHOLD) && producersInSidechainCount < numberOfProducersRequired) {
             if(state -> is_candidature_phase == false && state -> is_secret_sending_phase == false && state -> is_ip_sending_phase == false && state -> is_ip_retrieving_phase == false) {
                 ChangeContractStateDAM({owner, true, false, true, false, false, false, true});
