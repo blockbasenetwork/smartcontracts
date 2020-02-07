@@ -42,17 +42,20 @@ static bool IsStakeRecoverable(eosio::name contract, eosio::name owner, eosio::n
     blockbase::infoIndex _infos(contract, owner.value);
     blockbase::stateIndex _states(contract, owner.value);
     blockbase::producersIndex _producers(contract, owner.value);
+    blockbase::blockheadersIndex _blockheaders(contract, owner.value);
     auto info   = _infos.find(owner.value);
     auto state  = _states.find(owner.value);
     auto producerInTable = _producers.find(producer.value);
+    
+    std::vector<struct blockbase::blockheaders> lastblock;
+    for(auto block : _blockheaders) if(block.is_latest_block) lastblock.push_back(block);
 
     if (producerInTable == _producers.end()) return true;
 
     if (owner.value == producer.value){
         eosio::asset clientStake = blockbasetoken::get_stake(BLOCKBASE_TOKEN, owner, owner);
-        return (clientStake.amount < ((info -> payment_per_block)*(info -> num_blocks_between_settlements))
-        && state -> is_production_phase == false);
+        return (state -> is_production_phase == false && lastblock.back().timestamp + 259200 < eosio::current_block_time().to_time_point().sec_since_epoch());
     }
 
-    return ((producerInTable -> work_duration_in_seconds + producerInTable -> sidechain_start_date_in_seconds) <= eosio::current_block_time().to_time_point().sec_since_epoch());
+    return false;
 }
