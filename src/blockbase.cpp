@@ -459,6 +459,7 @@
         require_auth(owner);
         producersIndex _producers(_self, owner.value);
         blacklistIndex _blacklists(_self, owner.value);
+        currentprodIndex _currentprods(_self, owner.value);
         for(auto producer : _producers) {
             
             auto blackListedProducer = _blacklists.find(producer.key.value); 
@@ -470,6 +471,10 @@
         }
         RemoveBadProducers(owner);
         ReOpenCandidaturePhaseIfRequired(owner);
+        if(std::distance(_producers.begin(), _producers.end()) != 0 && std::distance(_currentprods.begin(),_currentprods.end()) == 0) { 
+            UpdateCurrentProducerDAM(owner, (_producers.begin()) -> key);
+        }
+        
     }
 
     [[eosio::action]]
