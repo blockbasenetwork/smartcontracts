@@ -187,6 +187,7 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     [[eosio::action]] void extendwrktime(eosio::name owner, eosio::name producer, uint64_t &worktimeToAddInSeconds);
     [[eosio::action]] void addblock(eosio::name owner, eosio::name producer, blockbase::blockheaders block);
     [[eosio::action]] void removeblisted(eosio::name owner, eosio::name producer);
+    [[eosio::action]] void stopproducing(eosio::name owner, eosio::name producer);
     [[eosio::action]] void iamready(eosio::name owner, eosio::name producer);
     [[eosio::action]] void resetreward(eosio::name sidechain, eosio::name claimer);
     [[eosio::action]] void verifyblock(eosio::name owner, eosio::name producer, std::string blockHash);

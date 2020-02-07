@@ -376,6 +376,30 @@
         });
     }
 
+    [[eosio::action]]
+    void blockbase::stopproducing(eosio::name owner, eosio::name producer) {
+        require_auth(producer);
+        producersIndex _producers(_self, owner.value);
+        stateIndex _states(_self, owner.value);
+        blockheadersIndex _blockheaders(_self, owner.value);
+        
+        auto producerI = _producers.find(producer.value);
+        auto state = _states.find(owner.value);
+        std::vector<struct blockbase::blockheaders> lastblock = blockbase::GetLatestBlock(owner);
+
+        check(producerI != _producers.end(), "Producer doesn't exist. \n");
+        check((state != _states.end() && 
+                state -> is_production_phase == false && 
+                state -> is_secret_sending_phase == false && 
+                state -> is_ip_sending_phase == false && 
+                state -> is_ip_retrieving_phase == false) || 
+            lastblock.back().timestamp + 259200 < eosio::current_block_time().to_time_point().sec_since_epoch(), 
+            "The chain is still in production so producer can't leave");
+
+        auto producerToRemove = _producers.find(producer.value);	
+        _producers.erase(producerToRemove);
+    }
+
     [[eosio::action]] 
     void blockbase::changecprod(eosio::name owner) {
         require_auth(owner);
