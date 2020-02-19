@@ -10,7 +10,6 @@ class[[eosio::contract]] blockbase : public eosio::contract {
 
 #pragma region Global Variabels
 
-
     // Minimum
     const uint32_t MIN_PAYMENT = 0;
     const uint32_t MIN_WORKDAYS_IN_SECONDS = 1;
@@ -66,6 +65,13 @@ class[[eosio::contract]] blockbase : public eosio::contract {
         uint64_t primary_key() const { return key.value; }
     };
     typedef eosio::multi_index<eosio::name("candidates"), candidates> candidatesIndex;
+
+    // Reserved Seats Table
+    struct [[eosio::table]] reservedseat {
+        eosio::name key;
+        uint64_t primary_key() const { return key.value; }
+    };
+    typedef eosio::multi_index<eosio::name("reservedseat"), reservedseat> reservedseatIndex;
 
     // Blockheaders Table
     struct [[eosio::table]] blockheaders {
@@ -173,7 +179,7 @@ class[[eosio::contract]] blockbase : public eosio::contract {
 #pragma region Action Methods
 
     [[eosio::action]] void startchain(eosio::name owner, std::string publicKey);
-    [[eosio::action]] void configchain(eosio::name owner, blockbase::contractinfo infoJson);
+    [[eosio::action]] void configchain(eosio::name owner, blockbase::contractinfo infoJson, std::vector<eosio::name> reservedSeats);
     [[eosio::action]] void startcandtime(eosio::name owner);
     [[eosio::action]] void secrettime(eosio::name owner);
     [[eosio::action]] void startsendtime(eosio::name owner);
@@ -184,7 +190,7 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     [[eosio::action]] void rcandidate(eosio::name owner, eosio::name name);
     [[eosio::action]] void addencryptip(eosio::name owner, eosio::name name, std::vector<std::string> encryptedIps);
     [[eosio::action]] void changecprod(eosio::name owner);
-    [[eosio::action]] void extendwrktime(eosio::name owner, eosio::name producer, uint64_t &worktimeToAddInSeconds);
+    [[eosio::action]] void extendwrktime(eosio::name owner, eosio::name producer, uint64_t & worktimeToAddInSeconds);
     [[eosio::action]] void addblock(eosio::name owner, eosio::name producer, blockbase::blockheaders block);
     [[eosio::action]] void removeblisted(eosio::name owner, eosio::name producer);
     [[eosio::action]] void stopproducing(eosio::name owner, eosio::name producer);

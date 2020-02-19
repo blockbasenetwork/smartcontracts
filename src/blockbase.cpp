@@ -1,548 +1,556 @@
+#include <cmath>
+#include <eosio/action.hpp>
+#include <eosio/asset.hpp>
 #include <eosio/eosio.hpp>
 #include <eosio/print.hpp>
 #include <eosio/transaction.hpp>
-#include <eosio/asset.hpp>
-#include <eosio/action.hpp>
-#include <cmath>
 #include <native.hpp>
 
-#include <blockbasetoken/blockbasetoken.hpp>
 #include <blockbase/blockbase.hpp>
+#include <blockbasetoken/blockbasetoken.hpp>
 
+#include <blockbase/blockproduce.hpp>
 #include <blockbase/candidature.hpp>
 #include <blockbase/consensus.hpp>
-#include <blockbase/blockproduce.hpp>
 #include <blockbase/payments.hpp>
 #include <blockbase/punishment.hpp>
 #include <blockbase/service.hpp>
 
-    #pragma region State Actions
+#pragma region State Actions
 
-    [[eosio::action]] 
-    void blockbase::startchain(eosio::name owner, std::string publicKey){
-        require_auth(owner);
+[[eosio::action]] void blockbase::startchain(eosio::name owner, std::string publicKey) {
+    require_auth(owner);
 
-        clientIndex _clients(_self, owner.value);
-        stateIndex _states(_self, owner.value);
+    clientIndex _clients(_self, owner.value);
+    stateIndex _states(_self, owner.value);
 
-        auto client = _clients.find(owner.value);
-        auto state = _states.find(owner.value);
+    auto client = _clients.find(owner.value);
+    auto state = _states.find(owner.value);
 
-        check(client == _clients.end(), "Client information already inserted, the chain has started.");
-        check(state == _states.end(), "Chain status are already created.");
-        check(IsPublicKeyValid(publicKey), "Public key is invalid, please insert a correct public key.");
+    check(client == _clients.end(), "Client information already inserted, the chain has started.");
+    check(state == _states.end(), "Chain status are already created.");
+    check(IsPublicKeyValid(publicKey), "Public key is invalid, please insert a correct public key.");
 
-        ChangeContractStateDAM({owner, true, false, false, false, false, false, false});
+    ChangeContractStateDAM({owner, true, false, false, false, false, false, false});
 
-        _clients.emplace(owner, [&](auto &newClientI) {
-            newClientI.key = owner;
-            newClientI.public_key = publicKey;
-        });
-        eosio::print("Chain started. You can now insert your configurations. \n");
+    _clients.emplace(owner, [&](auto &newClientI) {
+        newClientI.key = owner;
+        newClientI.public_key = publicKey;
+    });
+    eosio::print("Chain started. You can now insert your configurations. \n");
+}
+
+[[eosio::action]] void blockbase::configchain(eosio::name owner, blockbase::contractinfo infoJson, std::vector<eosio::name> reservedSeats) {
+    require_auth(owner);
+
+    stateIndex _states(_self, owner.value);
+    producersIndex _producers(_self, owner.value);
+    reservedseatIndex _reserverseats(_self, owner.value);
+    auto state = _states.find(owner.value);
+    check(state != _states.end() && state->has_chain_started != false && state->is_production_phase == false, "This sidechain hasnt't been created yet, please create it first.");
+    check(IsConfigurationValid(infoJson), "The configurantion inserted is incorrect or not valid, please insert it again.");
+    eosio::asset ownerStake = blockbasetoken::get_stake(BLOCKBASE_TOKEN, owner, owner);
+    check(ownerStake.amount > MIN_REQUESTER_STAKE, "No stake inserted or the amount is not valid. Please insert your stake and configure the chain again. \n");
+    check(reservedSeats.size() <= infoJson.number_of_producers_required, "Number of reserved seats is superior to number of producers required");
+
+    ChangeContractStateDAM({owner, true, true, false, false, false, false, false});
+    UpdateContractInfoDAM(owner, infoJson);
+    if (std::distance(_producers.begin(), _producers.end()) > 0) {
+        RemoveBlockCountDAM(owner);
+        RemoveIPsDAM(owner);
+        RemoveProducersDAM(owner);
     }
 
-    [[eosio::action]] 
-    void blockbase::configchain(eosio::name owner, blockbase::contractinfo infoJson){
-        require_auth(owner);
+    if (!reservedSeats.empty()) {
+        for (auto seat : reservedSeats) {
+            _reserverseats.emplace(owner, [&](auto &reservedSeatI) {
+                reservedSeatI.key = seat;
+            });
+        }
+    } else {
+        auto iterator = _reserverseats.begin();
+        while (iterator != _reserverseats.end())
+            iterator = _reserverseats.erase(iterator);
+    }
 
-        stateIndex _states(_self, owner.value);
-        producersIndex _producers(_self, owner.value);
-        auto state = _states.find(owner.value);
-        check(state != _states.end() && state -> has_chain_started != false && state -> is_production_phase == false, "This sidechain hasnt't been created yet, please create it first.");
-        check(IsConfigurationValid(infoJson), "The configurantion inserted is incorrect or not valid, please insert it again.");
-        eosio::asset ownerStake = blockbasetoken::get_stake(BLOCKBASE_TOKEN, owner, owner);
-        check(ownerStake.amount > MIN_REQUESTER_STAKE, "No stake inserted or the amount is not valid. Please insert your stake and configure the chain again. \n");
+    eosio::print("Information inserted. \n");
+}
 
-        ChangeContractStateDAM({owner, true, true, false, false, false, false, false});
-        UpdateContractInfoDAM(owner, infoJson);
-        if(std::distance(_producers.begin(), _producers.end()) > 0){
+[[eosio::action]] void blockbase::startcandtime(eosio::name owner) {
+    require_auth(owner);
+    eosio::print("Configuration time ended. \n");
+
+    infoIndex _infos(_self, owner.value);
+    stateIndex _states(_self, owner.value);
+    auto info = _infos.find(owner.value);
+    auto state = _states.find(owner.value);
+
+    check(IsCandidaturePhase(owner), "The chain is not in the correct state, please check the current state of the chain. \n");
+    check(info != _infos.end(), "No configuration inserted, please insert the configuration first. \n");
+
+    SetEndDateDAM(owner, CANDIDATURE_TIME_ID);
+
+    ChangeContractStateDAM({owner, true, false, true, false, false, false, state->is_production_phase});
+
+    eosio::print("Start candidature time. \n");
+}
+
+[[eosio::action]] void blockbase::secrettime(eosio::name owner) {
+    require_auth(owner);
+    eosio::print("Candidature time ended. \n");
+
+    candidatesIndex _candidates(_self, owner.value);
+    producersIndex _producers(_self, owner.value);
+    stateIndex _states(_self, owner.value);
+    infoIndex _infos(_self, owner.value);
+    auto state = _states.find(owner.value);
+    auto info = _infos.find(owner.value);
+
+    check(info != _infos.end(), "No configuration inserted, please insert the configuration first.");
+    check(state != _states.end() && state->has_chain_started != false && state->is_candidature_phase != false, "The chain is not in the correct state, please check the current state of the chain.");
+    auto producersAndCandidatesInSidechainCount = std::distance(_producers.begin(), _producers.end()) + std::distance(_candidates.begin(), _candidates.end());
+    if (producersAndCandidatesInSidechainCount < info->number_of_producers_required) {
+        eosio::print("Starting candidature time again... \n");
+        SetEndDateDAM(owner, CANDIDATURE_TIME_ID);
+        ChangeContractStateDAM({owner, true, false, true, false, false, false, state->is_production_phase});
+        return;
+    }
+
+    ChangeContractStateDAM({owner, true, false, false, true, false, false, state->is_production_phase});
+
+    SetEndDateDAM(owner, SECRET_TIME_ID);
+
+    eosio::print("Start Secret send time. \n");
+}
+
+[[eosio::action]] void blockbase::startsendtime(eosio::name owner) {
+    require_auth(owner);
+    eosio::print("Secret send time ended. \n");
+
+    producersIndex _producers(_self, owner.value);
+    stateIndex _states(_self, owner.value);
+    infoIndex _infos(_self, owner.value);
+
+    auto state = _states.find(owner.value);
+    auto info = _infos.find(owner.value);
+
+    check(info != _infos.end(), "No configuration inserted, please insert the configuration first. \n");
+    check(state != _states.end() && state->has_chain_started != false && state->is_secret_sending_phase != false, "The chain is not in the correct state, please check the current state of the chain. \n");
+
+    auto producersInSidechainCount = std::distance(_producers.begin(), _producers.end());
+
+    std::vector<struct blockbase::candidates> selectedCandidateList = RunCandidatesSelection(owner);
+    if (producersInSidechainCount + selectedCandidateList.size() < info->number_of_producers_required) {
+        if (producersInSidechainCount < ceil((info->number_of_producers_required) * MIN_PRODUCERS_IN_CHAIN_THRESHOLD)) {
+            ChangeContractStateDAM({owner, true, false, false, false, false, false, false});
             RemoveBlockCountDAM(owner);
             RemoveIPsDAM(owner);
             RemoveProducersDAM(owner);
-        } 
-        eosio::print("Information inserted. \n");
-    }
-
-    [[eosio::action]] 
-    void blockbase::startcandtime(eosio::name owner) {
-        require_auth(owner);
-        eosio::print("Configuration time ended. \n");
-
-        infoIndex _infos(_self, owner.value);
-        stateIndex _states(_self, owner.value);
-        auto info = _infos.find(owner.value);
-        auto state = _states.find(owner.value);
-
-        check(IsCandidaturePhase(owner), "The chain is not in the correct state, please check the current state of the chain. \n");
-        check(info != _infos.end(), "No configuration inserted, please insert the configuration first. \n");
-
-        SetEndDateDAM(owner, CANDIDATURE_TIME_ID);
-
-        ChangeContractStateDAM({owner, true, false, true, false, false, false, state -> is_production_phase});
-
-        eosio::print("Start candidature time. \n");
-    }
-
-    [[eosio::action]] void blockbase::secrettime(eosio::name owner) {
-        require_auth(owner);
-        eosio::print("Candidature time ended. \n");
-
-        candidatesIndex _candidates(_self, owner.value);
-        producersIndex _producers(_self, owner.value);
-        stateIndex _states(_self, owner.value);
-        infoIndex _infos(_self, owner.value);
-        auto state = _states.find(owner.value);
-        auto info = _infos.find(owner.value);
-
-        check(info != _infos.end(), "No configuration inserted, please insert the configuration first.");
-        check(state != _states.end() && state -> has_chain_started != false && state -> is_candidature_phase != false, "The chain is not in the correct state, please check the current state of the chain.");
-        auto producersAndCandidatesInSidechainCount = std::distance(_producers.begin(), _producers.end()) + std::distance(_candidates.begin(), _candidates.end());
-        if (producersAndCandidatesInSidechainCount < info -> number_of_producers_required) {
+            eosio::print("Not enough candidates, configure the chain again. \n");
+        } else {
+            ChangeContractStateDAM({owner, true, false, true, false, false, false, state->is_production_phase});
             eosio::print("Starting candidature time again... \n");
             SetEndDateDAM(owner, CANDIDATURE_TIME_ID);
-            ChangeContractStateDAM({owner, true, false, true, false, false, false, state -> is_production_phase});
             return;
         }
+    } else {
+        for (auto candidate : selectedCandidateList) {
+            AddProducerDAM(owner, candidate);
+            AddPublicKeyDAM(owner, candidate.key, candidate.public_key);
+            rcandidate(owner, candidate.key);
+        }
+        eosio::print("Producers sucessfully inserted. \n");
+        SetEndDateDAM(owner, SEND_TIME_ID);
 
-        ChangeContractStateDAM({owner, true, false, false, true, false, false, state -> is_production_phase});
+        ChangeContractStateDAM({owner, true, false, false, false, true, false, state->is_production_phase});
 
-        SetEndDateDAM(owner, SECRET_TIME_ID);
-
-        eosio::print("Start Secret send time. \n");
+        eosio::print("Start send time. \n");
     }
+}
 
-    [[eosio::action]] 
-    void blockbase::startsendtime(eosio::name owner) {
-        require_auth(owner);
-        eosio::print("Secret send time ended. \n");
+[[eosio::action]] void blockbase::startrectime(eosio::name owner) {
+    require_auth(owner);
+    eosio::print("Send time ended. \n");
+    producersIndex _producers(_self, owner.value);
+    infoIndex _infos(_self, owner.value);
+    stateIndex _states(_self, owner.value);
 
-        producersIndex _producers(_self, owner.value);
-        stateIndex _states(_self, owner.value);
-        infoIndex _infos(_self, owner.value);
+    auto state = _states.find(owner.value);
+    auto info = _infos.find(owner.value);
 
-        auto state = _states.find(owner.value);
-        auto info = _infos.find(owner.value);
+    check(state != _states.end() && state->has_chain_started != false && state->is_ip_sending_phase != false, "The chain is not in the correct state, please check the current state of the chain.");
+    check(info != _infos.end(), "No configuration inserted, please insert the configuration first.");
 
-        check(info != _infos.end(), "No configuration inserted, please insert the configuration first. \n");
-        check(state != _states.end() && state -> has_chain_started != false && state -> is_secret_sending_phase != false, "The chain is not in the correct state, please check the current state of the chain. \n");
+    std::vector<struct blockbase::producers> producersWhoFailedToSendIPsList = GetProducersWhoFailedToSendIPs(owner);
+    if (producersWhoFailedToSendIPsList.size() > 0) {
+        RemoveIPsDAM(owner, producersWhoFailedToSendIPsList);
+        RemoveProducersDAM(owner, producersWhoFailedToSendIPsList);
 
-        auto producersInSidechainCount = std::distance(_producers.begin(), _producers.end());
-
-        std::vector<struct blockbase::candidates> selectedCandidateList = RunCandidatesSelection(owner);
-        if(producersInSidechainCount + selectedCandidateList.size() < info -> number_of_producers_required) {
-            if(producersInSidechainCount < ceil((info -> number_of_producers_required) * MIN_PRODUCERS_IN_CHAIN_THRESHOLD)){
-                ChangeContractStateDAM({owner, true, false, false, false, false, false, false});
-                RemoveBlockCountDAM(owner);
-                RemoveIPsDAM(owner);
-                RemoveProducersDAM(owner);
-                eosio::print("Not enough candidates, configure the chain again. \n");
-            } else {
-                ChangeContractStateDAM({owner, true, false, true, false, false, false, state -> is_production_phase});
-                eosio::print("Starting candidature time again... \n");
-                SetEndDateDAM(owner, CANDIDATURE_TIME_ID);
-                return;
-            }
+        if (std::distance(_producers.begin(), _producers.end()) < ceil(info->number_of_producers_required * MIN_PRODUCERS_IN_CHAIN_THRESHOLD)) {
+            ChangeContractStateDAM({owner, true, false, false, false, false, false, false});
+            eosio::print("Configure chain again. \n");
+            return;
         } else {
-            for (auto candidate : selectedCandidateList) {
-                AddProducerDAM(owner, candidate);
-                AddPublicKeyDAM(owner, candidate.key, candidate.public_key);
-                rcandidate(owner, candidate.key);
-            }
-            eosio::print("Producers sucessfully inserted. \n");
-            SetEndDateDAM(owner, SEND_TIME_ID);
+            ChangeContractStateDAM({owner, true, false, true, false, false, false, state->is_production_phase});
 
-            ChangeContractStateDAM({owner, true, false, false, false, true, false, state -> is_production_phase});
-            
-            eosio::print("Start send time. \n");
+            eosio::print("Candidature time started again. \n");
+            SetEndDateDAM(owner, CANDIDATURE_TIME_ID);
+            return;
         }
     }
 
-    [[eosio::action]]
-    void blockbase::startrectime(eosio::name owner) { 
-        require_auth(owner);
-        eosio::print("Send time ended. \n");
-        producersIndex _producers(_self, owner.value);
-        infoIndex _infos(_self, owner.value);
-        stateIndex _states(_self, owner.value);
+    ChangeContractStateDAM({owner, true, false, false, false, false, true, state->is_production_phase});
+    ResetBlockCountDAM(owner);
+    SetEndDateDAM(owner, RECEIVE_TIME_ID);
+    eosio::print("Start receive time. \n");
+}
 
-        auto state = _states.find(owner.value);
-        auto info = _infos.find(owner.value);
+[[eosio::action]] void blockbase::startprodtime(eosio::name owner) {
+    require_auth(owner);
+    eosio::print("End receive time. \n");
 
-        check(state != _states.end() && state -> has_chain_started != false && state -> is_ip_sending_phase != false, "The chain is not in the correct state, please check the current state of the chain.");
-        check(info != _infos.end(), "No configuration inserted, please insert the configuration first.");
+    infoIndex _infos(_self, owner.value);
+    stateIndex _states(_self, owner.value);
+    auto state = _states.find(owner.value);
+    auto info = _infos.find(owner.value);
+    check(state != _states.end() && state->has_chain_started != false && state->is_ip_retrieving_phase != false, "The chain is not in the correct state, please check the current state of the chain. \n");
+    check(info != _infos.end(), "No configuration inserted, please insert the configuration first. \n");
 
-        std::vector<struct blockbase::producers> producersWhoFailedToSendIPsList = GetProducersWhoFailedToSendIPs(owner);
-        if(producersWhoFailedToSendIPsList.size() > 0){
-            RemoveIPsDAM(owner, producersWhoFailedToSendIPsList);
-            RemoveProducersDAM(owner, producersWhoFailedToSendIPsList);
+    ChangeContractStateDAM({owner, true, false, false, false, false, false, true});
 
-            if(std::distance(_producers.begin(), _producers.end()) < ceil(info -> number_of_producers_required * MIN_PRODUCERS_IN_CHAIN_THRESHOLD)) {
-                ChangeContractStateDAM({owner, true, false, false, false, false, false, false});
-                eosio::print("Configure chain again. \n");
-                return;
-            } else {
-                ChangeContractStateDAM({owner, true, false, true, false, false, false, state -> is_production_phase});
+    if (state->is_production_phase)
+        return;
 
-                eosio::print("Candidature time started again. \n");
-                SetEndDateDAM(owner, CANDIDATURE_TIME_ID);
-                return;
-            }
-        } 
-        
-        ChangeContractStateDAM({owner, true, false, false, false, false, true, state -> is_production_phase});
-        ResetBlockCountDAM(owner);
-        SetEndDateDAM(owner, RECEIVE_TIME_ID);
-        eosio::print("Start receive time. \n");
+    eosio::print("And let the production begin! \n");
+    eosio::print("Inserting current producer. \n");
+    currentprodIndex _currentprods(_self, owner.value);
+    std::vector<blockbase::producers> readyProducersList = GetReadyProducers(owner);
+    if (std::distance(_currentprods.begin(), _currentprods.end()) == 0 && readyProducersList.size() > 0) {
+        struct blockbase::producers nextproducer = GetNextProducer(owner);
+        if (nextproducer.is_ready_to_produce)
+            UpdateCurrentProducerDAM(owner, nextproducer.key);
     }
+}
 
-    [[eosio::action]] 
-    void blockbase::startprodtime(eosio::name owner) {
-        require_auth(owner);
-        eosio::print("End receive time. \n");
+#pragma endregion
+#pragma region User Actions
 
-        infoIndex _infos(_self, owner.value);
-        stateIndex _states(_self, owner.value);
-        auto state = _states.find(owner.value);
-        auto info = _infos.find(owner.value);
-        check(state != _states.end() && state->has_chain_started != false && state -> is_ip_retrieving_phase != false, "The chain is not in the correct state, please check the current state of the chain. \n");
-        check(info != _infos.end(), "No configuration inserted, please insert the configuration first. \n");
+[[eosio::action]] void blockbase::addcandidate(eosio::name owner, eosio::name candidate, uint64_t &workDurationInSeconds, std::string &publicKey, checksum256 secretHash) {
+    require_auth(candidate);
 
-        ChangeContractStateDAM({owner, true, false, false, false, false, false, true});
+    stateIndex _states(_self, owner.value);
+    blacklistIndex _blacklists(_self, owner.value);
+    infoIndex _infos(_self, owner.value);
 
-        if (state -> is_production_phase) return;
+    auto state = _states.find(owner.value);
+    auto blackListedAccount = _blacklists.find(candidate.value);
+    auto info = _infos.find(owner.value);
 
-        eosio::print("And let the production begin! \n");
-        eosio::print("Inserting current producer. \n");
-        currentprodIndex _currentprods(_self, owner.value);
-        std::vector<blockbase::producers> readyProducersList = GetReadyProducers(owner);
-        if (std::distance(_currentprods.begin(), _currentprods.end()) == 0 && readyProducersList.size() > 0) {
+    check(blackListedAccount == _blacklists.end(), "This account is blacklisted and can't enter this sidechain. \n");
+    check(state != _states.end() && state->has_chain_started != false && state->is_candidature_phase != false, "The chain is not in the correct state, please check the current state of the chain. \n");
+    check(IsCandidateValid(owner, candidate, workDurationInSeconds), "Candidature is invalid, please check the inserted values. \n");
+    check(IsPublicKeyValid(publicKey), "Incorrect format in public key, try inserting again. \n");
+    eosio::asset candidateStake = blockbasetoken::get_stake(BLOCKBASE_TOKEN, owner, candidate);
+    check(candidateStake.amount > 0, "No stake inserted in the sidechain. Please insert a stake first.\n");
+    check(candidateStake.amount > info->min_candidature_stake, "Stake inserted is not enough. Please insert more stake to be able to apply.\n");
+    AddCandidateDAM(owner, candidate, workDurationInSeconds, publicKey, secretHash);
+    eosio::print("Candidate added. \n");
+}
+
+[[eosio::action]] void blockbase::addencryptip(eosio::name owner, eosio::name producer, std::vector<std::string> encryptedIps) {
+    require_auth(producer);
+
+    stateIndex _states(_self, owner.value);
+
+    auto state = _states.find(owner.value);
+    check(state != _states.end() && state->has_chain_started != false && state->is_ip_sending_phase != false, "The chain is not in the correct state, please check the current state of the chain. \n");
+
+    ipsIndex _ips(_self, owner.value);
+    auto ip = _ips.find(producer.value);
+
+    _ips.modify(ip, producer, [&](auto &ipaddress) {
+        ipaddress.encrypted_ips.clear();
+        for (auto iplist : encryptedIps)
+            ipaddress.encrypted_ips.push_back(iplist);
+    });
+
+    eosio::print("Information successfully inserted. \n");
+}
+
+[[eosio::action]] void blockbase::addsecret(eosio::name owner, eosio::name producer, checksum256 secret) {
+    require_auth(producer);
+
+    stateIndex _states(_self, owner.value);
+    infoIndex _infos(_self, owner.value);
+    candidatesIndex _candidates(_self, owner.value);
+
+    auto info = _infos.find(owner.value);
+    auto state = _states.find(owner.value);
+    auto candidate = _candidates.find(producer.value);
+
+    check(state != _states.end() && state->has_chain_started != false && state->is_secret_sending_phase == true, "The chain is not in the correct state, please check the current state of the chain. \n");
+    check(info != _infos.end(), "The chain doesn't have any configurations inserted. Please insert configurations to begin production. \n");
+    check(IsSecretValid(owner, producer, secret), "Secret is invalid, please insert a valid secret");
+    check(candidate != _candidates.end(), "Your account was not selected for the producing pool. \n");
+
+    _candidates.modify(candidate, producer, [&](auto &candidateI) {
+        candidateI.secret = secret;
+    });
+    eosio::print("Secret inserted. \n");
+}
+
+[[eosio::action]] void blockbase::addblock(eosio::name owner, eosio::name producer, blockbase::blockheaders block) {
+    require_auth(producer);
+
+    stateIndex _states(_self, owner.value);
+    producersIndex _producers(_self, owner.value);
+
+    auto state = _states.find(owner.value);
+    auto producerInSidechain = _producers.find(producer.value);
+    check(state != _states.end() && state->has_chain_started != false && state->is_production_phase != false, "The chain is not in the correct state, please check the current state of the chain. \n");
+    check(producerInSidechain != _producers.end(), "Producer not in pool. \n");
+    check(IsProducerTurn(owner, producer), "It's not this producer turn to produce a block. \n");
+    //check(IsBlockValid(owner, block), "Invalid Block. \n");
+    check(HasBlockBeenProduced(owner, producer), "You already produced in this time slot, wait for your turn. \n");
+    AddBlockDAM(owner, producer, block);
+    eosio::print("Block submited with success. \n");
+}
+
+[[eosio::action]] void blockbase::rcandidate(eosio::name owner, eosio::name producer) {
+    require_auth(owner);
+
+    stateIndex _states(_self, owner.value);
+    candidatesIndex _candidates(_self, owner.value);
+
+    auto state = _states.find(owner.value);
+    auto candidateInSidechainToRemove = _candidates.find(producer.value);
+    check(state != _states.end() && state->has_chain_started != false, "The chain is not in the correct state, please check the current state of the chain. \n");
+    check(candidateInSidechainToRemove != _candidates.end(), "Candidate can't be removed. Candidate doesn't exist in the candidate list. \n");
+
+    _candidates.erase(candidateInSidechainToRemove);
+    eosio::print("Candidate removed. \n");
+}
+
+[[eosio::action]] void blockbase::resetreward(eosio::name owner, eosio::name producer) {
+    require_auth(BLOCKBASE_TOKEN);
+    rewardsIndex _rewards(_self, producer.value);
+    producersIndex _producers(_self, owner.value);
+
+    auto rewardForProducer = _rewards.find(owner.value);
+    auto producerI = _producers.find(producer.value);
+    if (rewardForProducer != _rewards.end() && rewardForProducer->reward > 0) {
+        _rewards.modify(rewardForProducer, same_payer, [&](auto &rewardI) {
+            rewardI.reward = 0;
+        });
+    }
+    if (producerI == _producers.end())
+        _rewards.erase(rewardForProducer);
+}
+
+[[eosio::action]] void blockbase::removeblisted(eosio::name owner, eosio::name producer) {
+    require_auth(owner);
+    producersIndex _producers(_self, owner.value);
+    candidatesIndex _candidates(_self, owner.value);
+    blacklistIndex _blacklists(_self, owner.value);
+    auto blackListedProducer = _blacklists.find(producer.value);
+    check(_blacklists.find(producer.value) != _blacklists.end(), "This user is not in the blacklist of this smart contract. \n");
+    check(_producers.find(producer.value) == _producers.end() && _candidates.find(producer.value) == _candidates.end(), "This producer is currently in producer pool \n");
+    _blacklists.erase(blackListedProducer);
+}
+
+[[eosio::action]] void blockbase::iamready(eosio::name owner, eosio::name producer) {
+    require_auth(producer);
+    producersIndex _producers(_self, owner.value);
+    auto producerInSidechain = _producers.find(producer.value);
+    check(producerInSidechain != _producers.end(), "This producer doesn't exist. \n");
+    check(producerInSidechain->is_ready_to_produce != true, "This producer is already ready. \n");
+    _producers.modify(producerInSidechain, producer, [&](auto &producerI) {
+        producerI.is_ready_to_produce = true;
+    });
+    eosio::print("Producer ", producer, "is ready and will start producting. \n");
+}
+
+    [[eosio::action]] void blockbase::extendwrktime(eosio::name owner, eosio::name producer, uint64_t &worktimeToAddInSeconds) {
+    require_auth(producer);
+    producersIndex _producers(_self, owner.value);
+    auto producerI = _producers.find(producer.value);
+    check(producerI != _producers.end(), "Producer doesn't exist. \n");
+    _producers.modify(producerI, producer, [&](auto &producerIT) {
+        producerIT.work_duration_in_seconds = producerIT.work_duration_in_seconds + worktimeToAddInSeconds;
+    });
+}
+
+[[eosio::action]] void blockbase::stopproducing(eosio::name owner, eosio::name producer) {
+    require_auth(producer);
+    producersIndex _producers(_self, owner.value);
+    stateIndex _states(_self, owner.value);
+    blockheadersIndex _blockheaders(_self, owner.value);
+
+    auto producerI = _producers.find(producer.value);
+    auto state = _states.find(owner.value);
+    std::vector<struct blockbase::blockheaders> lastblock = blockbase::GetLatestBlock(owner);
+
+    check(producerI != _producers.end(), "Producer doesn't exist. \n");
+    check((state != _states.end() &&
+           state->is_production_phase == false &&
+           state->is_secret_sending_phase == false &&
+           state->is_ip_sending_phase == false &&
+           state->is_ip_retrieving_phase == false) ||
+              lastblock.back().timestamp + 259200 < eosio::current_block_time().to_time_point().sec_since_epoch(),
+          "The chain is still in production so producer can't leave");
+
+    auto producerToRemove = _producers.find(producer.value);
+    _producers.erase(producerToRemove);
+}
+
+[[eosio::action]] void blockbase::changecprod(eosio::name owner) {
+    require_auth(owner);
+
+    eosio::print("Updating current producer... \n");
+
+    infoIndex _infos(_self, owner.value);
+    stateIndex _states(_self, owner.value);
+    clientIndex _clients(_self, owner.value);
+    currentprodIndex _currentprods(_self, owner.value);
+    blockscountIndex _blockscount(_self, owner.value);
+
+    auto info = _infos.find(owner.value);
+    auto state = _states.find(owner.value);
+    auto client = _clients.find(owner.value);
+
+    check(state != _states.end() && state->has_chain_started != false && state->is_production_phase != false, "The chain is not in the correct state, please check the current state of the chain. \n");
+    check(info != _infos.end(), "The chain doesn't have any configurations inserted. Please insert configurations to begin production. \n");
+    check(client != _clients.end(), "No client information in the chain. Please insert the needed information. \n");
+
+    std::vector<blockbase::producers> readyProducerslist = GetReadyProducers(owner);
+    if (readyProducerslist.size() > 0) {
+        auto currentProducer = _currentprods.begin();
+
+        UpdateBlockCount(owner, currentProducer->producer);
+        auto blockCountForComputation = 0;
+        for (auto count : _blockscount) {
+            blockCountForComputation += count.num_blocks_produced;
+            blockCountForComputation += count.num_blocks_failed;
+        }
+
+        if (blockCountForComputation >= info->num_blocks_between_settlements) {
+            eosio::print("Computation time... \n");
+            RunSettlement(owner);
+        }
+        readyProducerslist = GetReadyProducers(owner);
+        if (readyProducerslist.size() > 0) {
             struct blockbase::producers nextproducer = GetNextProducer(owner);
-            if(nextproducer.is_ready_to_produce) UpdateCurrentProducerDAM(owner, nextproducer.key);
+            if ((currentProducer->production_start_date_in_seconds + (info->block_time_in_seconds) / 2) <= eosio::current_block_time().to_time_point().sec_since_epoch()) {
+                UpdateCurrentProducerDAM(owner, nextproducer.key);
+                eosio::print("Current producer updated. \n");
+            } else
+                eosio::print("Same producer producing blocks. \n");
         }
     }
+    ReOpenCandidaturePhaseIfRequired(owner);
+}
 
-    #pragma endregion
-    #pragma region User Actions
-    [[eosio::action]] 
-    void blockbase::addcandidate(eosio::name owner, eosio::name candidate, uint64_t &workDurationInSeconds, std::string &publicKey, checksum256 secretHash) {
-        require_auth(candidate);
+[[eosio::action]] void blockbase::verifyblock(eosio::name owner, eosio::name producer, std::string blockHash) {
+    require_auth(owner);
 
-        stateIndex _states(_self, owner.value);
-        blacklistIndex _blacklists(_self, owner.value);
-        infoIndex _infos(_self, owner.value);
+    blockheadersIndex _blockheaders(_self, owner.value);
+    infoIndex _infos(_self, owner.value);
 
-        auto state = _states.find(owner.value);
-        auto blackListedAccount = _blacklists.find(candidate.value);
-        auto info = _infos.find(owner.value);
+    auto info = _infos.find(owner.value);
+    std::vector<struct blockbase::blockheaders> lastblock = blockbase::GetLatestBlock(owner);
+    auto blockToValidate = _blockheaders.find((--_blockheaders.end())->sequence_number);
 
-        check(blackListedAccount == _blacklists.end(), "This account is blacklisted and can't enter this sidechain. \n");
-        check(state != _states.end() && state -> has_chain_started != false && state -> is_candidature_phase != false, "The chain is not in the correct state, please check the current state of the chain. \n");
-        check(IsCandidateValid(owner, candidate, workDurationInSeconds), "Candidature is invalid, please check the inserted values. \n");
-        check(IsPublicKeyValid(publicKey), "Incorrect format in public key, try inserting again. \n");
-        eosio::asset candidateStake = blockbasetoken::get_stake(BLOCKBASE_TOKEN, owner, candidate);
-        check(candidateStake.amount > 0, "No stake inserted in the sidechain. Please insert a stake first.\n");
-        check(candidateStake.amount > info -> min_candidature_stake, "Stake inserted is not enough. Please insert more stake to be able to apply.\n");
-        AddCandidateDAM(owner, candidate, workDurationInSeconds, publicKey, secretHash);
-        eosio::print("Candidate added. \n");
+    if (lastblock.size() > 0)
+        check(lastblock.back().timestamp + (info->block_time_in_seconds - 1) < eosio::current_block_time().to_time_point().sec_since_epoch(), "Time to verify block already passed");
+
+    if (std::distance(_blockheaders.begin(), _blockheaders.end()) > 0) {
+        if (blockToValidate->block_hash == blockHash && blockToValidate->is_verified == false && blockToValidate->is_latest_block == false) {
+            _blockheaders.modify(blockToValidate, _self, [&](auto &newBlockI) {
+                newBlockI.is_verified = true;
+                newBlockI.is_latest_block = true;
+            });
+            if (lastblock.size() > 0) {
+                auto blockToModify = _blockheaders.find(lastblock.back().sequence_number);
+                _blockheaders.modify(blockToModify, _self, [&](auto &newBlockI) {
+                    newBlockI.is_latest_block = false;
+                });
+            }
+            eosio::print("Block validated. \n");
+            return;
+        }
     }
+}
 
-    [[eosio::action]] 
-    void blockbase::addencryptip(eosio::name owner, eosio::name producer, std::vector<std::string> encryptedIps) {
-        require_auth(producer);
+[[eosio::action]] void blockbase::blacklistprod(eosio::name owner) {
+    require_auth(owner);
+    producersIndex _producers(_self, owner.value);
+    blacklistIndex _blacklists(_self, owner.value);
+    currentprodIndex _currentprods(_self, owner.value);
+    for (auto producer : _producers) {
 
-        stateIndex _states(_self, owner.value);
-
-        auto state = _states.find(owner.value);
-        check(state != _states.end() && state -> has_chain_started != false && state -> is_ip_sending_phase != false, "The chain is not in the correct state, please check the current state of the chain. \n");
-
-        ipsIndex _ips(_self, owner.value);
-        auto ip = _ips.find(producer.value);
-
-        _ips.modify(ip, producer, [&](auto &ipaddress) 
-        {
-            ipaddress.encrypted_ips.clear();
-            for (auto iplist : encryptedIps) ipaddress.encrypted_ips.push_back(iplist);
-        });
-
-        eosio::print("Information successfully inserted. \n");
-    }
-
-    [[eosio::action]]
-     void blockbase::addsecret(eosio::name owner, eosio::name producer, checksum256 secret) {
-        require_auth(producer);
-
-        stateIndex _states(_self, owner.value);
-        infoIndex _infos(_self, owner.value);
-        candidatesIndex _candidates(_self, owner.value);
-
-        auto info = _infos.find(owner.value);
-        auto state = _states.find(owner.value);
-        auto candidate = _candidates.find(producer.value);
-
-        check(state != _states.end() && state -> has_chain_started != false && state -> is_secret_sending_phase == true, "The chain is not in the correct state, please check the current state of the chain. \n");
-        check(info != _infos.end(), "The chain doesn't have any configurations inserted. Please insert configurations to begin production. \n");
-        check(IsSecretValid(owner, producer, secret), "Secret is invalid, please insert a valid secret");
-        check(candidate != _candidates.end(), "Your account was not selected for the producing pool. \n");
-
-        _candidates.modify(candidate, producer, [&](auto &candidateI) {
-            candidateI.secret = secret;
-        });
-        eosio::print("Secret inserted. \n");
-    }
-
-    [[eosio::action]]
-    void blockbase::addblock(eosio::name owner, eosio::name producer, blockbase::blockheaders block) {
-        require_auth(producer);
-        
-        stateIndex _states(_self, owner.value);
-        producersIndex _producers(_self, owner.value);
-
-        auto state = _states.find(owner.value);
-        auto producerInSidechain = _producers.find(producer.value);
-        check(state != _states.end() && state -> has_chain_started != false && state -> is_production_phase != false, "The chain is not in the correct state, please check the current state of the chain. \n");
-        check(producerInSidechain != _producers.end(), "Producer not in pool. \n");
-        check(IsProducerTurn(owner, producer), "It's not this producer turn to produce a block. \n");
-        //check(IsBlockValid(owner, block), "Invalid Block. \n");
-        check(HasBlockBeenProduced(owner, producer), "You already produced in this time slot, wait for your turn. \n");
-        AddBlockDAM(owner, producer, block);
-        eosio::print("Block submited with success. \n");
-    }
-
-    [[eosio::action]]
-    void blockbase::rcandidate(eosio::name owner, eosio::name producer) {
-        require_auth(owner);
-
-        stateIndex _states(_self, owner.value);
-        candidatesIndex _candidates(_self, owner.value);
-
-        auto state = _states.find(owner.value);
-        auto candidateInSidechainToRemove = _candidates.find(producer.value);
-        check(state != _states.end() && state -> has_chain_started != false, "The chain is not in the correct state, please check the current state of the chain. \n");
-        check(candidateInSidechainToRemove != _candidates.end(), "Candidate can't be removed. Candidate doesn't exist in the candidate list. \n");
-
-        _candidates.erase(candidateInSidechainToRemove);
-        eosio::print("Candidate removed. \n");
-    }
-
-    [[eosio::action]]
-     void blockbase::resetreward(eosio::name owner, eosio::name producer){
-        require_auth(BLOCKBASE_TOKEN);
-        rewardsIndex _rewards(_self, producer.value);
-        producersIndex _producers(_self, owner.value);
-
-        auto rewardForProducer = _rewards.find(owner.value);
-        auto producerI = _producers.find(producer.value);
-        if(rewardForProducer != _rewards.end() && rewardForProducer -> reward > 0){
-            _rewards.modify(rewardForProducer, same_payer, [&](auto &rewardI) {
-                rewardI.reward = 0;
+        auto blackListedProducer = _blacklists.find(producer.key.value);
+        if (producer.warning_type == WARNING_TYPE_PUNISH && blackListedProducer == _blacklists.end()) {
+            _blacklists.emplace(owner, [&](auto &blackListedProducerI) {
+                blackListedProducerI.key = producer.key;
             });
         }
-        if(producerI == _producers.end()) _rewards.erase(rewardForProducer);
     }
-
-    [[eosio::action]]
-    void blockbase::removeblisted(eosio::name owner, eosio::name producer) {
-        require_auth(owner);
-        producersIndex _producers(_self, owner.value);
-        candidatesIndex _candidates(_self, owner.value);
-        blacklistIndex _blacklists(_self, owner.value);
-        auto blackListedProducer = _blacklists.find(producer.value);
-        check(_blacklists.find(producer.value) != _blacklists.end(), "This user is not in the blacklist of this smart contract. \n");
-        check(_producers.find(producer.value) == _producers.end() && _candidates.find(producer.value) == _candidates.end(), "This producer is currently in producer pool \n");
-        _blacklists.erase(blackListedProducer);
+    RemoveBadProducers(owner);
+    ReOpenCandidaturePhaseIfRequired(owner);
+    if (std::distance(_producers.begin(), _producers.end()) != 0 && std::distance(_currentprods.begin(), _currentprods.end()) == 0) {
+        UpdateCurrentProducerDAM(owner, (_producers.begin())->key);
     }
+}
 
-    [[eosio::action]]
-     void blockbase::iamready(eosio::name owner, eosio::name producer) {
-        require_auth(producer);
-        producersIndex _producers(_self, owner.value);
-        auto producerInSidechain = _producers.find(producer.value);
-        check(producerInSidechain != _producers.end(), "This producer doesn't exist. \n");
-        check(producerInSidechain -> is_ready_to_produce != true, "This producer is already ready. \n");
-        _producers.modify(producerInSidechain, producer, [&](auto &producerI) {
-            producerI.is_ready_to_produce = true;
-        });
-        eosio::print("Producer ", producer, "is ready and will start producting. \n");
-    }
+[[eosio::action]] void blockbase::endservice(eosio::name owner) {
+    require_auth(owner);
+    eosio::print("Ending Service. \n");
+    infoIndex _infos(_self, owner.value);
+    stateIndex _states(_self, owner.value);
+    clientIndex _clients(_self, owner.value);
+    currentprodIndex _currentprods(_self, owner.value);
+    candidatesIndex _candidates(_self, owner.value);
+    blacklistIndex _blacklists(_self, owner.value);
+    rewardsIndex _rewards(_self, owner.value);
+    blockheadersIndex _blockheaders(_self, owner.value);
 
-    [[eosio::action]]
-    void blockbase::extendwrktime(eosio::name owner, eosio::name producer, uint64_t &worktimeToAddInSeconds) {
-        require_auth(producer);
-        producersIndex _producers(_self, owner.value);
-        auto producerI = _producers.find(producer.value);
-        check(producerI != _producers.end(), "Producer doesn't exist. \n");
-        _producers.modify(producerI, producer, [&](auto &producerIT){
-            producerIT.work_duration_in_seconds = producerIT.work_duration_in_seconds + worktimeToAddInSeconds;
-        });
-    }
+    RemoveProducersDAM(owner);
+    RemoveIPsDAM(owner);
+    RemoveBlockCountDAM(owner);
 
-    [[eosio::action]]
-    void blockbase::stopproducing(eosio::name owner, eosio::name producer) {
-        require_auth(producer);
-        producersIndex _producers(_self, owner.value);
-        stateIndex _states(_self, owner.value);
-        blockheadersIndex _blockheaders(_self, owner.value);
-        
-        auto producerI = _producers.find(producer.value);
-        auto state = _states.find(owner.value);
-        std::vector<struct blockbase::blockheaders> lastblock = blockbase::GetLatestBlock(owner);
+    auto itr = _infos.begin();
+    while (itr != _infos.end())
+        itr = _infos.erase(itr);
 
-        check(producerI != _producers.end(), "Producer doesn't exist. \n");
-        check((state != _states.end() && 
-                state -> is_production_phase == false && 
-                state -> is_secret_sending_phase == false && 
-                state -> is_ip_sending_phase == false && 
-                state -> is_ip_retrieving_phase == false) || 
-            lastblock.back().timestamp + 259200 < eosio::current_block_time().to_time_point().sec_since_epoch(), 
-            "The chain is still in production so producer can't leave");
+    auto itr1 = _states.begin();
+    while (itr1 != _states.end())
+        itr1 = _states.erase(itr1);
 
-        auto producerToRemove = _producers.find(producer.value);	
-        _producers.erase(producerToRemove);
-    }
+    auto itr2 = _clients.begin();
+    while (itr2 != _clients.end())
+        itr2 = _clients.erase(itr2);
 
-    [[eosio::action]] 
-    void blockbase::changecprod(eosio::name owner) {
-        require_auth(owner);
+    auto itr3 = _rewards.begin();
+    while (itr3 != _rewards.end())
+        itr3 = _rewards.erase(itr3);
 
-        eosio::print("Updating current producer... \n");
+    auto itr4 = _candidates.begin();
+    while (itr4 != _candidates.end())
+        itr4 = _candidates.erase(itr4);
 
-        infoIndex _infos(_self, owner.value);
-        stateIndex _states(_self, owner.value);
-        clientIndex _clients(_self, owner.value);
-        currentprodIndex _currentprods(_self, owner.value);
-        blockscountIndex _blockscount(_self, owner.value);
+    auto itr5 = _blacklists.begin();
+    while (itr5 != _blacklists.end())
+        itr5 = _blacklists.erase(itr5);
 
-        auto info = _infos.find(owner.value);
-        auto state = _states.find(owner.value);
-        auto client = _clients.find(owner.value);
+    auto itr6 = _currentprods.begin();
+    while (itr6 != _currentprods.end())
+        itr6 = _currentprods.erase(itr6);
 
-        check(state != _states.end() && state -> has_chain_started != false && state -> is_production_phase != false, "The chain is not in the correct state, please check the current state of the chain. \n");
-        check(info != _infos.end(), "The chain doesn't have any configurations inserted. Please insert configurations to begin production. \n");
-        check(client != _clients.end(), "No client information in the chain. Please insert the needed information. \n");
+    auto itr7 = _blockheaders.begin();
+    while (itr7 != _blockheaders.end())
+        itr7 = _blockheaders.erase(itr7);
 
-        std::vector<blockbase::producers> readyProducerslist = GetReadyProducers(owner);
-        if(readyProducerslist.size() > 0) {
-            auto currentProducer = _currentprods.begin();
+    eosio::print("Service Ended. \n");
+}
 
-            UpdateBlockCount(owner, currentProducer -> producer);
-            auto blockCountForComputation = 0;
-            for(auto count : _blockscount) {
-                blockCountForComputation += count.num_blocks_produced;
-                blockCountForComputation += count.num_blocks_failed;
-            }
-
-            if(blockCountForComputation >= info -> num_blocks_between_settlements) {
-                eosio::print("Computation time... \n");
-                RunSettlement(owner);
-            }
-            readyProducerslist = GetReadyProducers(owner);
-            if(readyProducerslist.size() > 0) {
-                struct blockbase::producers nextproducer = GetNextProducer(owner);
-                if((currentProducer -> production_start_date_in_seconds + (info -> block_time_in_seconds) / 2) <= eosio::current_block_time().to_time_point().sec_since_epoch()) {
-                    UpdateCurrentProducerDAM(owner, nextproducer.key);
-                    eosio::print("Current producer updated. \n");
-                } else eosio::print("Same producer producing blocks. \n");
-            }
-        }
-        ReOpenCandidaturePhaseIfRequired(owner);
-    }
-    
-    [[eosio::action]] 
-    void blockbase::verifyblock(eosio::name owner, eosio::name producer, std::string blockHash){
-        require_auth(owner);
-
-        blockheadersIndex _blockheaders(_self, owner.value);
-        infoIndex _infos (_self, owner.value);
-
-        auto info = _infos.find(owner.value);
-        std::vector<struct blockbase::blockheaders> lastblock = blockbase::GetLatestBlock(owner);
-        auto blockToValidate = _blockheaders.find((--_blockheaders.end()) -> sequence_number);
-
-        if (lastblock.size() > 0) check(lastblock.back().timestamp + (info -> block_time_in_seconds - 1) < eosio::current_block_time().to_time_point().sec_since_epoch(), "Time to verify block already passed");
-
-        if(std::distance(_blockheaders.begin(), _blockheaders.end()) > 0){
-            if (blockToValidate -> block_hash == blockHash && blockToValidate -> is_verified == false && blockToValidate -> is_latest_block == false) {
-                _blockheaders.modify(blockToValidate, _self, [&](auto &newBlockI) {
-                    newBlockI.is_verified = true;
-                    newBlockI.is_latest_block = true;
-                });
-                if (lastblock.size() > 0) {
-                    auto blockToModify = _blockheaders.find(lastblock.back().sequence_number);
-                    _blockheaders.modify(blockToModify, _self, [&](auto &newBlockI) {
-                        newBlockI.is_latest_block = false;
-                    });
-                }
-                eosio::print("Block validated. \n");
-                return;
-            }
-        }
-    }
-
-    [[eosio::action]] 
-    void blockbase::blacklistprod(eosio::name owner){
-        require_auth(owner);
-        producersIndex _producers(_self, owner.value);
-        blacklistIndex _blacklists(_self, owner.value);
-        currentprodIndex _currentprods(_self, owner.value);
-        for(auto producer : _producers) {
-            
-            auto blackListedProducer = _blacklists.find(producer.key.value); 
-            if(producer.warning_type == WARNING_TYPE_PUNISH && blackListedProducer == _blacklists.end()){
-                _blacklists.emplace(owner, [&](auto &blackListedProducerI) {
-                    blackListedProducerI.key = producer.key;
-                });
-            }
-        }
-        RemoveBadProducers(owner);
-        ReOpenCandidaturePhaseIfRequired(owner);
-        if(std::distance(_producers.begin(), _producers.end()) != 0 && std::distance(_currentprods.begin(),_currentprods.end()) == 0) { 
-            UpdateCurrentProducerDAM(owner, (_producers.begin()) -> key);
-        }
-        
-    }
-
-    [[eosio::action]]
-    void blockbase::endservice(eosio::name owner) {
-        require_auth(owner);
-        eosio::print("Ending Service. \n");
-        infoIndex _infos(_self, owner.value);
-        stateIndex _states(_self, owner.value);
-        clientIndex _clients(_self, owner.value);
-        currentprodIndex _currentprods(_self, owner.value);
-        candidatesIndex _candidates(_self, owner.value);
-        blacklistIndex _blacklists(_self, owner.value);
-        rewardsIndex _rewards(_self, owner.value);
-        blockheadersIndex _blockheaders(_self, owner.value);
-
-        RemoveProducersDAM(owner);
-        RemoveIPsDAM(owner);
-        RemoveBlockCountDAM(owner);
-
-        auto itr = _infos.begin();
-        while (itr != _infos.end()) itr = _infos.erase(itr);
-        
-        auto itr1 = _states.begin();
-        while (itr1 != _states.end()) itr1 = _states.erase(itr1);
-    
-        auto itr2 = _clients.begin();
-        while (itr2 != _clients.end()) itr2 = _clients.erase(itr2);
-
-        auto itr3 = _rewards.begin();
-        while (itr3 != _rewards.end()) itr3 = _rewards.erase(itr3);
-    
-        auto itr4 = _candidates.begin();
-        while (itr4 != _candidates.end()) itr4 = _candidates.erase(itr4);
-        
-        auto itr5 = _blacklists.begin();
-        while (itr5 != _blacklists.end()) itr5 = _blacklists.erase(itr5);
-        
-        auto itr6 = _currentprods.begin();
-        while (itr6 != _currentprods.end()) itr6 = _currentprods.erase(itr6);
-
-        auto itr7 = _blockheaders.begin();
-        while (itr7 != _blockheaders.end()) itr7 = _blockheaders.erase(itr7);
-        
-        eosio::print("Service Ended. \n");
-    }
-
-    #pragma endregion
+#pragma endregion
