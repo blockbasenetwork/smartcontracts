@@ -468,7 +468,7 @@
     auto blockToValidate = _blockheaders.find((--_blockheaders.end())->sequence_number);
 
     if (lastblock.size() > 0)
-        check(lastblock.back().timestamp + (info->block_time_in_seconds - 1) < eosio::current_block_time().to_time_point().sec_since_epoch(), "Time to verify block already passed");
+        check(lastblock.back().timestamp + (info->block_time_in_seconds - 3) < eosio::current_block_time().to_time_point().sec_since_epoch(), "Time to verify block already passed");
 
     if (std::distance(_blockheaders.begin(), _blockheaders.end()) > 0) {
         if (blockToValidate->block_hash == blockHash && blockToValidate->is_verified == false && blockToValidate->is_latest_block == false) {
