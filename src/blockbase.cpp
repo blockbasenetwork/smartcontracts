@@ -108,6 +108,8 @@
 
     check(info != _infos.end(), "No configuration inserted, please insert the configuration first.");
     check(state != _states.end() && state->has_chain_started != false && state->is_candidature_phase != false, "The chain is not in the correct state, please check the current state of the chain.");
+    check( eosio::current_block_time().to_time_point().sec_since_epoch() >= info -> candidature_phase_end_date_in_seconds && info -> candidature_phase_end_date_in_seconds != 0, "Candidature time did not ended");  
+    
     auto producersAndCandidatesInSidechainCount = std::distance(_producers.begin(), _producers.end()) + std::distance(_candidates.begin(), _candidates.end());
     if (producersAndCandidatesInSidechainCount < info->number_of_producers_required) {
         eosio::print("Starting candidature time again... \n");
@@ -136,6 +138,7 @@
 
     check(info != _infos.end(), "No configuration inserted, please insert the configuration first. \n");
     check(state != _states.end() && state->has_chain_started != false && state->is_secret_sending_phase != false, "The chain is not in the correct state, please check the current state of the chain. \n");
+    check(eosio::current_block_time().to_time_point().sec_since_epoch() >= info -> secret_sending_phase_end_date_in_seconds && info -> secret_sending_phase_end_date_in_seconds != 0, "Candidature time did not ended");
 
     AddCandidatesWithReservedSeat(owner);
 
@@ -182,6 +185,7 @@
 
     check(state != _states.end() && state->has_chain_started != false && state->is_ip_sending_phase != false, "The chain is not in the correct state, please check the current state of the chain.");
     check(info != _infos.end(), "No configuration inserted, please insert the configuration first.");
+    check(eosio::current_block_time().to_time_point().sec_since_epoch() >= info -> ip_sending_phase_end_date_in_seconds && info -> ip_sending_phase_end_date_in_seconds != 0, "Candidature time did not ended");
 
     std::vector<struct blockbase::producers> producersWhoFailedToSendIPsList = GetProducersWhoFailedToSendIPs(owner);
     if (producersWhoFailedToSendIPsList.size() > 0) {
@@ -217,6 +221,7 @@
     auto info = _infos.find(owner.value);
     check(state != _states.end() && state->has_chain_started != false && state->is_ip_retrieving_phase != false, "The chain is not in the correct state, please check the current state of the chain. \n");
     check(info != _infos.end(), "No configuration inserted, please insert the configuration first. \n");
+    check(eosio::current_block_time().to_time_point().sec_since_epoch() >= info -> ip_retrieval_phase_end_date_in_seconds && info -> ip_retrieval_phase_end_date_in_seconds != 0, "Candidature time did not ended");
 
     ChangeContractStateDAM({owner, true, false, false, false, false, false, true});
 
