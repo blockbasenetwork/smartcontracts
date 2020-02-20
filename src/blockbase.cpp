@@ -137,6 +137,8 @@
     check(info != _infos.end(), "No configuration inserted, please insert the configuration first. \n");
     check(state != _states.end() && state->has_chain_started != false && state->is_secret_sending_phase != false, "The chain is not in the correct state, please check the current state of the chain. \n");
 
+    AddCandidatesWithReservedSeat(owner);
+
     auto producersInSidechainCount = std::distance(_producers.begin(), _producers.end());
 
     std::vector<struct blockbase::candidates> selectedCandidateList = RunCandidatesSelection(owner);

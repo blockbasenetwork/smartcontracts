@@ -86,6 +86,19 @@
         return selectedCandidateList;
     }
 
+    void blockbase::AddCandidatesWithReservedSeat(eosio::name owner) {
+        candidatesIndex _candidates(_self, owner.value);
+        reservedseatIndex _reservedseats(_self, owner.value);
+        for (auto candidate : _candidates) {
+            auto reservedSeat = _reservedseats.find(candidate.key.value);
+            if (reservedSeat != _reservedseats.end()) {
+                AddProducerDAM(owner, candidate);
+                AddPublicKeyDAM(owner, candidate.key, candidate.public_key);
+                rcandidate(owner, candidate.key);
+            }   
+        }
+    }
+
     void blockbase::AddCandidateDAM(eosio::name owner, eosio::name candidate, uint64_t &workDurationInSeconds, std::string &publicKey, checksum256 secretHash) {
         candidatesIndex _candidates(_self, owner.value);
         _candidates.emplace(candidate, [&](auto &newCandidateI) {

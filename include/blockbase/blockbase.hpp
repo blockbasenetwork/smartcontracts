@@ -218,6 +218,7 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     void RewardProducerDAM(eosio::name owner, eosio::name producer, uint64_t quantity);
     void UpdateBlockCount(eosio::name owner, eosio::name producer);
     void UpdateCurrentProducerDAM(eosio::name owner, eosio::name nextProducer);
+    void AddCandidatesWithReservedSeat(eosio::name owner);
     void AddBlockDAM(eosio::name owner, eosio::name producer, blockbase::blockheaders block);
     void AddCandidateDAM(eosio::name owner, eosio::name candidate, uint64_t & workDurationInSeconds, std::string & publicKey, checksum256 secretHash);
     void AddProducerDAM(eosio::name owner, blockbase::candidates candidate);
