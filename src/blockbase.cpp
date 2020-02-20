@@ -521,6 +521,10 @@
     rewardsIndex _rewards(_self, owner.value);
     blockheadersIndex _blockheaders(_self, owner.value);
 
+    stateIndex _states(_self, owner.value);
+    auto state = _states.find(owner.value);
+    check(state != _states.end() && state -> is_production_phase, "Chain is not in production time, it's not possible to execute this action.  \n");
+
     RemoveProducersDAM(owner);
     RemoveIPsDAM(owner);
     RemoveBlockCountDAM(owner);
