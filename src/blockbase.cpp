@@ -324,7 +324,7 @@
 }
 
 [[eosio::action]] void blockbase::rcandidate(eosio::name owner, eosio::name producer) {
-    require_auth(owner);
+    require_auth(producer);
 
     stateIndex _states(_self, owner.value);
     candidatesIndex _candidates(_self, owner.value);
@@ -521,7 +521,6 @@
     rewardsIndex _rewards(_self, owner.value);
     blockheadersIndex _blockheaders(_self, owner.value);
 
-    stateIndex _states(_self, owner.value);
     auto state = _states.find(owner.value);
     check(state != _states.end() && state -> is_production_phase, "Chain is not in production time, it's not possible to execute this action.  \n");
 
