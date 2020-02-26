@@ -94,7 +94,7 @@
             if (reservedSeat != _reservedseats.end()) {
                 AddProducerDAM(owner, candidate);
                 AddPublicKeyDAM(owner, candidate.key, candidate.public_key);
-                rcandidate(owner, candidate.key);
+                RemoveCandidateDAM(owner, candidate.key);
             }   
         }
     }
@@ -192,4 +192,11 @@
         }
     }
     
+    void blockbase::RemoveCandidateDAM(eosio::name owner, eosio::name producer) {
+        candidatesIndex _candidates(_self, owner.value);
+        auto candidateInSidechainToRemove = _candidates.find(producer.value);
+        _candidates.erase(candidateInSidechainToRemove);
+
+        eosio::print("Candidate removed. \n");  
+    }
 #pragma endregion

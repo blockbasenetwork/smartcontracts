@@ -162,7 +162,7 @@
         for (auto candidate : selectedCandidateList) {
             AddProducerDAM(owner, candidate);
             AddPublicKeyDAM(owner, candidate.key, candidate.public_key);
-            rcandidate(owner, candidate.key);
+            RemoveCandidateDAM(owner, candidate.key);
         }
         eosio::print("Producers sucessfully inserted. \n");
         SetEndDateDAM(owner, SEND_TIME_ID);

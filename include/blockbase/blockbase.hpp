@@ -235,6 +235,7 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     void DeleteCurrentProducerDAM(eosio::name owner, std::vector<struct producers> producersToRemove);
     void ReOpenCandidaturePhaseIfRequired(eosio::name owner);
     void ChangeContractStateDAM(struct blockbase::contractst states);
+    void RemoveCandidateDAM(eosio::name owner, eosio::name name);
     uint8_t CalculateNumberOfIPsRequired(float numberOfProducers);
     uint8_t CalculateMultiSigThreshold(uint8_t producersNumber);
     std::vector<struct blockbase::candidates> RunCandidatesSelection(eosio::name owner);
