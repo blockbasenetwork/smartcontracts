@@ -317,7 +317,7 @@
     check(state != _states.end() && state->has_chain_started != false && state->is_production_phase != false, "The chain is not in the correct state, please check the current state of the chain. \n");
     check(producerInSidechain != _producers.end(), "Producer not in pool. \n");
     check(IsProducerTurn(owner, producer), "It's not this producer turn to produce a block. \n");
-    //check(IsBlockValid(owner, block), "Invalid Block. \n");
+    check(IsBlockValid(owner, block), "Invalid Block. \n");
     check(HasBlockBeenProduced(owner, producer), "You already produced in this time slot, wait for your turn. \n");
     AddBlockDAM(owner, producer, block);
     eosio::print("Block submited with success. \n");
@@ -334,7 +334,7 @@
     check(state != _states.end() && state->has_chain_started != false, "The chain is not in the correct state, please check the current state of the chain. \n");
     check(candidateInSidechainToRemove != _candidates.end(), "Candidate can't be removed. Candidate doesn't exist in the candidate list. \n");
 
-    _candidates.erase(candidateInSidechainToRemove);
+    RemoveCandidateDAM(owner, candidateInSidechainToRemove -> key);
     eosio::print("Candidate removed. \n");
 }
 

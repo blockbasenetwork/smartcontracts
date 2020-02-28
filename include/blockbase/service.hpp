@@ -50,9 +50,6 @@ static bool IsStakeRecoverable(eosio::name contract, eosio::name owner, eosio::n
     auto clientInTable = _clients.find(owner.value);
     auto candidateInTable = _candidates.find(producer.value);
     
-    std::vector<struct blockbase::blockheaders> lastblock;
-    for(auto block : _blockheaders) if(block.is_latest_block) lastblock.push_back(block);
-
     if (owner.value == producer.value){
         if(clientInTable == _clients.end()) return false;
 
