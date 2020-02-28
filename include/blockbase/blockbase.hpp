@@ -235,7 +235,7 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     void DeleteCurrentProducerDAM(eosio::name owner, std::vector<struct producers> producersToRemove);
     void ReOpenCandidaturePhaseIfRequired(eosio::name owner);
     void ChangeContractStateDAM(struct blockbase::contractst states);
-    void RemoveCandidateDAM(eosio::name owner, eosio::name name);
+    void RemoveCandidateDAM(eosio::name owner, eosio::name candidate);
     uint8_t CalculateNumberOfIPsRequired(float numberOfProducers);
     uint8_t CalculateMultiSigThreshold(uint8_t producersNumber);
     std::vector<struct blockbase::candidates> RunCandidatesSelection(eosio::name owner);
@@ -247,5 +247,6 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     std::vector<struct blockbase::producers> GetReadyProducers(eosio::name owner);
     std::map<eosio::name, asset> static GetProducersToPunishInfo(const name &contract, const name &owner);
     void RemoveProducerWithWorktimeFinnished(eosio::name owner);
+    bool static IsServiceRequester(const name &contract, const name &owner);
 #pragma endregion
 };

@@ -39,23 +39,33 @@ static bool IsProducer(eosio::name contract, eosio::name owner, eosio::name prod
 
 //TODO: REVIEW
 static bool IsStakeRecoverable(eosio::name contract, eosio::name owner, eosio::name producer) {
-    blockbase::infoIndex _infos(contract, owner.value);
     blockbase::stateIndex _states(contract, owner.value);
     blockbase::producersIndex _producers(contract, owner.value);
     blockbase::blockheadersIndex _blockheaders(contract, owner.value);
-    auto info   = _infos.find(owner.value);
+    blockbase::clientIndex _clients(contract, owner.value);
+    blockbase::candidatesIndex _candidates(contract, owner.value);
+
     auto state  = _states.find(owner.value);
     auto producerInTable = _producers.find(producer.value);
+    auto clientInTable = _clients.find(owner.value);
+    auto candidateInTable = _candidates.find(producer.value);
     
     std::vector<struct blockbase::blockheaders> lastblock;
     for(auto block : _blockheaders) if(block.is_latest_block) lastblock.push_back(block);
 
-    if (producerInTable == _producers.end()) return true;
-
     if (owner.value == producer.value){
-        eosio::asset clientStake = blockbasetoken::get_stake(BLOCKBASE_TOKEN, owner, owner);
-        return (state -> is_production_phase == false && lastblock.back().timestamp + 259200 < eosio::current_block_time().to_time_point().sec_since_epoch());
-    }
+        if(clientInTable == _clients.end()) return false;
+
+        return (state -> is_production_phase == false && state -> is_ip_retrieving_phase == false && state -> is_ip_sending_phase == false 
+                && state -> is_secret_sending_phase == false && state -> is_candidature_phase == false);
+
+    } else if (producerInTable == _producers.end() && candidateInTable == _candidates.end()) return true;
 
     return false;
+}
+
+static bool IsServiceRequester(eosio::name contract, eosio::name owner) {
+    blockbase::clientIndex _clients(contract, owner.value);
+    auto client = _clients.find(owner.value);
+    return (client != _clients.end());
 }

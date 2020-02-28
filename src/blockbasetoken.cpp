@@ -215,6 +215,10 @@ void blockbasetoken::sub_stake(const name& sidechain, const name& user, const as
 
 void blockbasetoken::prodpunish(const name& owner, const name& contract){
     require_auth(owner);
+    
+    check(contract == BLOCKBASE_CONTRACT, "contract name invalid");
+    check(IsServiceRequester(contract, owner), "Invalid punish, this account is not a service requester");
+    
     std::map<eosio::name, asset> prodpunish = GetProducersToPunishInfo(contract, owner);
     if(prodpunish.size() > 0){
         for (auto const& producer : prodpunish) {
@@ -276,8 +280,8 @@ void blockbasetoken::claimstake(const name& sidechain, const name& claimer) {
     auto ledger = sidechainledger.find(sidechain.value);
     check(ledger -> stake.is_valid(), "invalid stake quantity");
     check(ledger -> stake.amount > 0, "must transfer positive stake");
-
-    if(ledger -> owner == claimer && IsStakeRecoverable(BLOCKBASE_CONTRACT, sidechain, claimer)){
+    check(IsStakeRecoverable(BLOCKBASE_CONTRACT, sidechain, claimer), "stake can't be claimed right now. Check the contract states or your current state in the sidechain");
+    if(ledger -> owner == claimer){
         sub_stake(sidechain, claimer, ledger -> stake);
         add_balance(claimer, ledger -> stake, claimer);
     }

@@ -192,9 +192,9 @@
         }
     }
     
-    void blockbase::RemoveCandidateDAM(eosio::name owner, eosio::name producer) {
+    void blockbase::RemoveCandidateDAM(eosio::name owner, eosio::name candidate) {
         candidatesIndex _candidates(_self, owner.value);
-        auto candidateInSidechainToRemove = _candidates.find(producer.value);
+        auto candidateInSidechainToRemove = _candidates.find(candidate.value);
         _candidates.erase(candidateInSidechainToRemove);
 
         eosio::print("Candidate removed. \n");  
