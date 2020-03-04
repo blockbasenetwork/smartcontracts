@@ -335,7 +335,6 @@
     check(candidateInSidechainToRemove != _candidates.end(), "Candidate can't be removed. Candidate doesn't exist in the candidate list. \n");
 
     RemoveCandidateDAM(owner, candidateInSidechainToRemove -> key);
-    eosio::print("Candidate removed. \n");
 }
 
 [[eosio::action]] void blockbase::resetreward(eosio::name owner, eosio::name producer) {

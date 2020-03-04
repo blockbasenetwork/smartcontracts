@@ -133,7 +133,6 @@ void blockbase::ReOpenCandidaturePhaseIfRequired(eosio::name owner){
                 eosio::print("  Starting candidature time but mining continues. \n");
                 SetEndDateDAM(owner, CANDIDATURE_TIME_ID);
             }
-            eosio::print("  Candidature in progress... \n");
         }
     }
     eosio::print("  Producer changed. \n");

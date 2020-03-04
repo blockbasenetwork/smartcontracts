@@ -161,10 +161,11 @@ void blockbase::RemoveProducerWithWorktimeFinnished(eosio::name owner){
             producersToRemove.push_back(producer);
         }
     }
-
-    RemoveIPsDAM(owner, producersToRemove);
-    RemoveProducersDAM(owner, producersToRemove);
-    DeleteCurrentProducerDAM(owner,producersToRemove);
-    RemoveBlockCountDAM(owner,producersToRemove);
+    if(std::distance(producersToRemove.begin(), producersToRemove.end()) > 0) {
+        RemoveIPsDAM(owner, producersToRemove);
+        RemoveProducersDAM(owner, producersToRemove);
+        DeleteCurrentProducerDAM(owner,producersToRemove);
+        RemoveBlockCountDAM(owner,producersToRemove);
+    }
 }
 #pragma endregion
