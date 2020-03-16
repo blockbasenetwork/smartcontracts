@@ -119,7 +119,7 @@ void blockbase::ReOpenCandidaturePhaseIfRequired(eosio::name owner){
     infoIndex _infos(_self, owner.value);
     auto info = _infos.find(owner.value);
     auto state = _states.find(owner.value);
-    int32_t numberOfProducersRequired = info -> number_of_producers_required;
+    auto numberOfProducersRequired = info->number_of_validator_producers_required + info->number_of_history_producers_required + info->number_of_full_producers_required;
     uint8_t producersInSidechainCount = std::distance(_producers.begin(), _producers.end());
 
     if (producersInSidechainCount < numberOfProducersRequired) {

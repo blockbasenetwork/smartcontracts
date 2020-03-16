@@ -16,10 +16,11 @@
     }
 
     bool blockbase::IsConfigurationValid(blockbase::contractinfo info) {
+        auto numberOfProducersRequired = info.number_of_validator_producers_required + info.number_of_history_producers_required + info.number_of_full_producers_required;
         if(info.candidature_phase_duration_in_seconds < MIN_CANDIDATURE_TIME_IN_SECONDS) return false;
         if(info.ip_sending_phase_duration_in_seconds < MIN_IP_SEND_TIME_IN_SECONDS) return false; 
         if(info.ip_retrieval_phase_duration_in_seconds < MIN_IP_SEND_TIME_IN_SECONDS) return false;
-        if(info.number_of_producers_required < MIN_REQUIRED_PRODUCERS) return false;
+        if(numberOfProducersRequired < MIN_REQUIRED_PRODUCERS) return false;
         return info.payment_per_block >= MIN_PAYMENT && info.min_candidature_stake >= MIN_CANDIDATE_STAKE;
     }
 
@@ -42,18 +43,31 @@
     }
 
     std::vector<struct blockbase::candidates> blockbase::RunCandidatesSelection(eosio::name owner) {
+        std::vector<struct blockbase::candidates> candidateSelection;
+        for (int i = 1; i < 4; i++) {
+            auto candidatesToAdd = RunCandidatesSelectionForType(owner, static_cast<producer_t>(i));
+            candidateSelection.insert(candidateSelection.end(), candidatesToAdd.begin(), candidatesToAdd.end());
+        }
+        return candidateSelection;
+    }
+
+    std::vector<struct blockbase::candidates> blockbase::RunCandidatesSelectionForType(eosio::name owner, producer_t producerType) {
         infoIndex _infos(_self, owner.value);
         candidatesIndex _candidates(_self, owner.value);
         producersIndex _producers(_self, owner.value);
+        auto info = _infos.get(owner.value);
+        int32_t numberOfProducersRequired = producerType == 1 ? info.number_of_validator_producers_required : producerType == 2 ? info.number_of_validator_producers_required : info.number_of_full_producers_required;
         
         std::vector<struct blockbase::candidates> selectedCandidateList;
-
-        auto info = _infos.get(owner.value);
-        auto producersInSidechainCount = std::distance(_producers.begin(), _producers.end());
+        std::vector<struct blockbase::producers> producersOfSelectedType;
 
         for(auto candidate : _candidates){
-            if(IsSecretValid(owner, candidate.key, candidate.secret)) selectedCandidateList.push_back(candidate);
+            if(candidate.producer_type == producerType && IsSecretValid(owner, candidate.key, candidate.secret)) selectedCandidateList.push_back(candidate);
         }
+        for(auto producer : _producers){
+            if(producer.producer_type == producerType) producersOfSelectedType.push_back(producer);
+        }
+        
         struct StakeComparator{
             explicit StakeComparator(eosio::name sidechain_) : sidechain(sidechain_) {}
 
@@ -65,9 +79,10 @@
             eosio::name sidechain;
         };
 
+        auto producersInSidechainCount = std::distance(producersOfSelectedType.begin(), producersOfSelectedType.end());
         std::sort(selectedCandidateList.begin(), selectedCandidateList.end(), StakeComparator(_self));
 
-        while((selectedCandidateList.size() + producersInSidechainCount) > info.number_of_producers_required){
+        while((selectedCandidateList.size() + producersInSidechainCount) > numberOfProducersRequired){
             for(auto i = 0; i < selectedCandidateList.size(); i += 2){
                 std::array<uint8_t, 64> combinedSecrets;
                 std::copy_n(selectedCandidateList[i].secret.extract_as_byte_array().begin(), 32, combinedSecrets.begin());
@@ -80,7 +95,7 @@
                 if(leastsignificantbit) selectedCandidateList.erase(selectedCandidateList.begin()+(i+1));
                 else selectedCandidateList.erase(selectedCandidateList.begin()+i);
                 
-                if((selectedCandidateList.size() + producersInSidechainCount) <= info.number_of_producers_required) return selectedCandidateList;
+                if((selectedCandidateList.size() + producersInSidechainCount) <= numberOfProducersRequired) return selectedCandidateList;
             }
         }
         return selectedCandidateList;
@@ -99,13 +114,14 @@
         }
     }
 
-    void blockbase::AddCandidateDAM(eosio::name owner, eosio::name candidate, uint64_t &workDurationInSeconds, std::string &publicKey, checksum256 secretHash) {
+    void blockbase::AddCandidateDAM(eosio::name owner, eosio::name candidate, uint64_t &workDurationInSeconds, std::string &publicKey, checksum256 secretHash, producer_t producerType) {
         candidatesIndex _candidates(_self, owner.value);
         _candidates.emplace(candidate, [&](auto &newCandidateI) {
             newCandidateI.key = candidate;
             newCandidateI.work_duration_in_seconds = workDurationInSeconds;
             newCandidateI.public_key = publicKey;
             newCandidateI.secret_hash = secretHash;
+            newCandidateI.producer_type = producerType;
         });
     }
 
@@ -118,6 +134,7 @@
             newProducerI.warning_type = WARNING_TYPE_CLEAR;
             newProducerI.is_ready_to_produce = false;
             newProducerI.sidechain_start_date_in_seconds = eosio::current_block_time().to_time_point().sec_since_epoch();
+            newProducerI.producer_type = candidate.producer_type;
         });
     }
     
@@ -139,7 +156,9 @@
             newInfoI.key = owner;
             newInfoI.payment_per_block = informationJson.payment_per_block;
             newInfoI.min_candidature_stake = informationJson.min_candidature_stake;
-            newInfoI.number_of_producers_required = informationJson.number_of_producers_required;
+            newInfoI.number_of_validator_producers_required = informationJson.number_of_validator_producers_required;
+            newInfoI.number_of_history_producers_required = informationJson.number_of_history_producers_required;
+            newInfoI.number_of_full_producers_required = informationJson.number_of_full_producers_required;
             newInfoI.candidature_phase_duration_in_seconds = informationJson.candidature_phase_duration_in_seconds;
             newInfoI.secret_sending_phase_duration_in_seconds = informationJson.secret_sending_phase_duration_in_seconds;
             newInfoI.ip_sending_phase_duration_in_seconds = informationJson.ip_sending_phase_duration_in_seconds;
