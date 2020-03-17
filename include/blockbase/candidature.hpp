@@ -56,10 +56,12 @@
         candidatesIndex _candidates(_self, owner.value);
         producersIndex _producers(_self, owner.value);
         auto info = _infos.get(owner.value);
-        int32_t numberOfProducersRequired = producerType == 1 ? info.number_of_validator_producers_required : producerType == 2 ? info.number_of_validator_producers_required : info.number_of_full_producers_required;
+        int32_t numberOfProducersRequired = producerType == 1 ? info.number_of_validator_producers_required : producerType == 2 ? info.number_of_history_producers_required : info.number_of_full_producers_required;
         
         std::vector<struct blockbase::candidates> selectedCandidateList;
         std::vector<struct blockbase::producers> producersOfSelectedType;
+
+        if (numberOfProducersRequired == 0) return selectedCandidateList;
 
         for(auto candidate : _candidates){
             if(candidate.producer_type == producerType && IsSecretValid(owner, candidate.key, candidate.secret)) selectedCandidateList.push_back(candidate);
@@ -67,6 +69,8 @@
         for(auto producer : _producers){
             if(producer.producer_type == producerType) producersOfSelectedType.push_back(producer);
         }
+
+        if (selectedCandidateList.size() == 0) return selectedCandidateList;
         
         struct StakeComparator{
             explicit StakeComparator(eosio::name sidechain_) : sidechain(sidechain_) {}
@@ -79,10 +83,9 @@
             eosio::name sidechain;
         };
 
-        auto producersInSidechainCount = std::distance(producersOfSelectedType.begin(), producersOfSelectedType.end());
         std::sort(selectedCandidateList.begin(), selectedCandidateList.end(), StakeComparator(_self));
 
-        while((selectedCandidateList.size() + producersInSidechainCount) > numberOfProducersRequired){
+        while((selectedCandidateList.size() + producersOfSelectedType.size()) > numberOfProducersRequired){
             for(auto i = 0; i < selectedCandidateList.size(); i += 2){
                 std::array<uint8_t, 64> combinedSecrets;
                 std::copy_n(selectedCandidateList[i].secret.extract_as_byte_array().begin(), 32, combinedSecrets.begin());
@@ -95,7 +98,7 @@
                 if(leastsignificantbit) selectedCandidateList.erase(selectedCandidateList.begin()+(i+1));
                 else selectedCandidateList.erase(selectedCandidateList.begin()+i);
                 
-                if((selectedCandidateList.size() + producersInSidechainCount) <= numberOfProducersRequired) return selectedCandidateList;
+                if((selectedCandidateList.size() + producersOfSelectedType.size()) <= numberOfProducersRequired) return selectedCandidateList;
             }
         }
         return selectedCandidateList;
