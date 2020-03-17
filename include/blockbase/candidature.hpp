@@ -45,13 +45,13 @@
     std::vector<struct blockbase::candidates> blockbase::RunCandidatesSelection(eosio::name owner) {
         std::vector<struct blockbase::candidates> candidateSelection;
         for (int i = 1; i < 4; i++) {
-            auto candidatesToAdd = RunCandidatesSelectionForType(owner, static_cast<producer_t>(i));
+            auto candidatesToAdd = RunCandidatesSelectionForType(owner, i);
             candidateSelection.insert(candidateSelection.end(), candidatesToAdd.begin(), candidatesToAdd.end());
         }
         return candidateSelection;
     }
 
-    std::vector<struct blockbase::candidates> blockbase::RunCandidatesSelectionForType(eosio::name owner, producer_t producerType) {
+    std::vector<struct blockbase::candidates> blockbase::RunCandidatesSelectionForType(eosio::name owner, uint8_t producerType) {
         infoIndex _infos(_self, owner.value);
         candidatesIndex _candidates(_self, owner.value);
         producersIndex _producers(_self, owner.value);
@@ -114,7 +114,7 @@
         }
     }
 
-    void blockbase::AddCandidateDAM(eosio::name owner, eosio::name candidate, uint64_t &workDurationInSeconds, std::string &publicKey, checksum256 secretHash, producer_t producerType) {
+    void blockbase::AddCandidateDAM(eosio::name owner, eosio::name candidate, uint64_t &workDurationInSeconds, std::string &publicKey, checksum256 secretHash, uint8_t producerType) {
         candidatesIndex _candidates(_self, owner.value);
         _candidates.emplace(candidate, [&](auto &newCandidateI) {
             newCandidateI.key = candidate;

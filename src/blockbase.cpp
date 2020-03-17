@@ -246,7 +246,7 @@
 #pragma endregion
 #pragma region User Actions
 
-    [[eosio::action]] void blockbase::addcandidate(eosio::name owner, eosio::name candidate, uint64_t &workDurationInSeconds, std::string &publicKey, checksum256 secretHash, producer_t producerType) {
+    [[eosio::action]] void blockbase::addcandidate(eosio::name owner, eosio::name candidate, uint64_t &workDurationInSeconds, std::string &publicKey, checksum256 secretHash, uint8_t producerType) {
     require_auth(candidate);
 
     stateIndex _states(_self, owner.value);
