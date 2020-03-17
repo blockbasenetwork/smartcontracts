@@ -4,7 +4,9 @@ void blockbase::RunSettlement(eosio::name owner) {
     blockscountIndex _blockscount(_self, owner.value);
     producersIndex _producers(_self, owner.value);
     uint8_t producedBlocks = 0, failedBlocks = 0;
-    auto paymentPerBlock = _infos.find(owner.value)->payment_per_block;
+    auto paymentPerBlockValidatorProducers = _infos.find(owner.value)->payment_per_block_validator_producers;
+    auto paymentPerBlockHistoryProducers = _infos.find(owner.value)->payment_per_block_history_producers;
+    auto paymentPerBlockFullProducers = _infos.find(owner.value)->payment_per_block_full_producers;
     std::vector<blockbase::producers> readyProducers = blockbase::GetReadyProducers(owner);
     
     for (struct blockbase::producers &producer : readyProducers) {
@@ -15,8 +17,9 @@ void blockbase::RunSettlement(eosio::name owner) {
         }
         EvaluateProducer(owner, producer.key, failedBlocks, producedBlocks);
         
+        auto producerPaymentPerBlock = producer.producer_type == 1 ? paymentPerBlockValidatorProducers : producer.producer_type == 2 ? paymentPerBlockHistoryProducers : paymentPerBlockFullProducers;
         auto producerWarning = _producers.find(producer.key.value);
-        if(producerWarning -> warning_type != WARNING_TYPE_PUNISH && producedBlocks > 0) RewardProducerDAM(owner, producer.key, (producedBlocks * (paymentPerBlock)));
+        if(producerWarning -> warning_type != WARNING_TYPE_PUNISH && producedBlocks > 0) RewardProducerDAM(owner, producer.key, (producedBlocks * (producerPaymentPerBlock)));
     }
     ResetBlockCountDAM(owner);
     IsRequesterStakeEnough(owner);
@@ -40,8 +43,9 @@ void blockbase::IsRequesterStakeEnough(eosio::name owner) {
     auto info = _infos.find(owner.value);
 
     asset clientStake = blockbasetoken::get_stake(BLOCKBASE_TOKEN, owner, owner);
+    auto averagePaymentPerBlock = (info->payment_per_block_validator_producers+info->payment_per_block_history_producers+info->payment_per_block_validator_producers) / 3;
 
-    if (clientStake.amount < ((info->payment_per_block) * (info->num_blocks_between_settlements))) {
+    if (clientStake.amount < (averagePaymentPerBlock * (info->num_blocks_between_settlements))) {
         ChangeContractStateDAM({owner, true, false, false, false, false, false, false});
         RemoveBlockCountDAM(owner);
         RemoveIPsDAM(owner);

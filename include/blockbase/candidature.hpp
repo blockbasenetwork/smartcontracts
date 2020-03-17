@@ -21,7 +21,7 @@
         if(info.ip_sending_phase_duration_in_seconds < MIN_IP_SEND_TIME_IN_SECONDS) return false; 
         if(info.ip_retrieval_phase_duration_in_seconds < MIN_IP_SEND_TIME_IN_SECONDS) return false;
         if(numberOfProducersRequired < MIN_REQUIRED_PRODUCERS) return false;
-        return info.payment_per_block >= MIN_PAYMENT && info.min_candidature_stake >= MIN_CANDIDATE_STAKE;
+        return info.min_candidature_stake >= MIN_CANDIDATE_STAKE;
     }
 
     bool blockbase::IsCandidaturePhase(eosio::name owner) {
@@ -157,7 +157,9 @@
          
         _infos.emplace(owner, [&](auto &newInfoI) {
             newInfoI.key = owner;
-            newInfoI.payment_per_block = informationJson.payment_per_block;
+            newInfoI.payment_per_block_validator_producers = informationJson.payment_per_block_validator_producers;
+            newInfoI.payment_per_block_history_producers = informationJson.payment_per_block_history_producers;
+            newInfoI.payment_per_block_full_producers = informationJson.payment_per_block_full_producers;
             newInfoI.min_candidature_stake = informationJson.min_candidature_stake;
             newInfoI.number_of_validator_producers_required = informationJson.number_of_validator_producers_required;
             newInfoI.number_of_history_producers_required = informationJson.number_of_history_producers_required;

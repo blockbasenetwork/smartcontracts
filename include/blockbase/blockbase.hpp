@@ -130,7 +130,9 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     // Contract Information Table
     struct [[eosio::table]] contractinfo {
         eosio::name key;
-        uint64_t payment_per_block;
+        uint64_t payment_per_block_validator_producers;
+        uint64_t payment_per_block_history_producers;
+        uint64_t payment_per_block_full_producers;
         uint64_t min_candidature_stake;
         uint32_t number_of_validator_producers_required;
         uint32_t number_of_history_producers_required;
