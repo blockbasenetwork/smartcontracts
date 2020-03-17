@@ -154,6 +154,8 @@ void blockbasetoken::add_balance(const name& owner, const asset& value, const na
 void blockbasetoken::payment(const name& sidechain, const name& claimer, const asset& quantity) {
     check(sidechain != claimer, "cannot transfer to self");
     check(is_account(claimer), "claimer account does not exist");
+    check(is_account(sidechain), "sidechain account does not exist");
+
     auto sym = quantity.symbol.code();
     stats statstable(get_self(), sym.raw());
     const auto& st = statstable.get(sym.raw());
@@ -174,13 +176,13 @@ void blockbasetoken::payment(const name& sidechain, const name& claimer, const a
 void blockbasetoken::addstake(const name& owner, const name& sidechain, const asset& stake) {
     require_auth(owner);
     check(is_account(sidechain), "sidechain account does not exist");
+    check(is_account(owner), "owner account does not exist");
     auto sym = stake.symbol.code();
     stats statstable(get_self(), sym.raw());
     const auto& st = statstable.get(sym.raw());
 
     require_recipient(owner);
     require_recipient(sidechain);
-
     check(stake.is_valid(), "invalid stake quantity");
     check(stake.amount > 0, "must transfer positive stake");
     check(stake.symbol == st.supply.symbol, "symbol precision mismatch");
@@ -204,7 +206,14 @@ void blockbasetoken::addstake(const name& owner, const name& sidechain, const as
 void blockbasetoken::sub_stake(const name& sidechain, const name& user, const asset& stake) {
     ledgers sidechainledger(get_self(), user.value);
 
+    check(is_account(sidechain), "sidechain is not an account");
+    check(is_account(user), "user is not an account");
+    
     auto sd = sidechainledger.find(sidechain.value);
+
+    check(stake.is_valid(), "invalid stake quantity");
+    check(stake.amount > 0, "stake withdraw must be positive");
+    check(stake.symbol == sd->stake.symbol, "symbol precision mismatch");
     check(sd->stake.amount >= stake.amount, "overdrawn stake");
     check(sd->owner == user, "invalid user");
 
@@ -220,34 +229,37 @@ void blockbasetoken::prodpunish(const name& owner, const name& contract){
     check(IsServiceRequester(contract, owner), "Invalid punish, this account is not a service requester");
     
     std::map<eosio::name, asset> prodpunish = GetProducersToPunishInfo(contract, owner);
-    if(prodpunish.size() > 0){
-        for (auto const& producer : prodpunish) {
+    check(prodpunish.size() > 0, "No producers to punnish");
+
+    for (auto const& producer : prodpunish) {
         
-            check(is_account(producer.first), "Producer does not exist");
-            auto sym = producer.second.symbol.code();
-            stats statstable(get_self(), sym.raw());
-            const auto& st = statstable.get(sym.raw());
+        check(is_account(producer.first), "Producer does not exist");
+        auto sym = producer.second.symbol.code();
+        stats statstable(get_self(), sym.raw());
+        const auto& st = statstable.get(sym.raw());
 
-            require_recipient(producer.first);
-            require_recipient(owner);
+        require_recipient(producer.first);
+        require_recipient(owner);
 
-            check(producer.second.is_valid(), "invalid quantity");
-            check(producer.second.amount > 0, "must transfer positive quantity");
-            check(producer.second.symbol == st.supply.symbol, "symbol precision mismatch");
+        check(producer.second.is_valid(), "invalid quantity");
+        check(producer.second.amount > 0, "must transfer positive quantity");
+        check(producer.second.symbol == st.supply.symbol, "symbol precision mismatch");
 
-            sub_stake(owner, producer.first, producer.second);
+        sub_stake(owner, producer.first, producer.second);
 
-            ledgers sidechainledger(get_self(), owner.value);
-            auto sd = sidechainledger.find(owner.value);
+        ledgers sidechainledger(get_self(), owner.value);
+        auto sd = sidechainledger.find(owner.value);
 
-            sidechainledger.modify(sd, owner, [&](auto& s) {
-                    s.stake += producer.second;
-            });
-        }
+        sidechainledger.modify(sd, owner, [&](auto& s) {
+                s.stake += producer.second;
+        });
     }
 }
 
 void blockbasetoken::claimreward(const name& sidechain, const name& claimer) {
+    check(is_account(claimer), "claimer account does not exist");
+    check(is_account(sidechain), "sidechain account does not exist");
+   
     require_auth(claimer);
     require_recipient(claimer);
 
@@ -271,7 +283,9 @@ void blockbasetoken::claimreward(const name& sidechain, const name& claimer) {
 
 void blockbasetoken::claimstake(const name& sidechain, const name& claimer) {
     require_auth(claimer);
+    
     check(is_account(sidechain), "sidechain account does not exist");
+    check(is_account(claimer), "claimer account does not exist");
 
     require_recipient(claimer);
     require_recipient(sidechain);
@@ -281,10 +295,11 @@ void blockbasetoken::claimstake(const name& sidechain, const name& claimer) {
     check(ledger -> stake.is_valid(), "invalid stake quantity");
     check(ledger -> stake.amount > 0, "must transfer positive stake");
     check(IsStakeRecoverable(BLOCKBASE_CONTRACT, sidechain, claimer), "stake can't be claimed right now. Check the contract states or your current state in the sidechain");
-    if(ledger -> owner == claimer){
-        sub_stake(sidechain, claimer, ledger -> stake);
-        add_balance(claimer, ledger -> stake, claimer);
-    }
+    check(ledger -> owner == claimer, "The claimer inserted doens't match the owner of the table. ");
+
+    sub_stake(sidechain, claimer, ledger -> stake);
+    add_balance(claimer, ledger -> stake, claimer);
+    
 }
 
 void blockbasetoken::open(const name& owner, const symbol& symbol, const name& ram_payer) {
@@ -306,19 +321,20 @@ void blockbasetoken::open(const name& owner, const symbol& symbol, const name& r
     }
 }
 
-void blockbasetoken::leaveledger(const name& owner, const name& producer, const name& sidechain){
+void blockbasetoken::leaveledger(const name& owner, const name& sidechain){
     require_auth(owner);
-    check(is_account(producer), "sidechain account does not exist");
+
+    check(is_account(owner), "owner account does not exist");
+    check(is_account(sidechain), "sidechain account does not exist");
 
     require_recipient(owner);
-    require_recipient(producer);
 
-    ledgers sidechainledger(get_self(), producer.value);
+    ledgers sidechainledger(get_self(), owner.value);
     auto sd = sidechainledger.find(sidechain.value);
+    check(sd != sidechainledger.end(), "This account don't have stakes inserted.");
+    check(sd -> stake.amount <= 0, "Still stake left to claim, please retreive it and then try again. ");
 
-    if(sd != sidechainledger.end() && sd -> stake.amount <= 0){
-        sidechainledger.erase(sd);
-    } 
+    sidechainledger.erase(sd);
 }
 
 void blockbasetoken::close(const name& owner, const symbol& symbol) {
