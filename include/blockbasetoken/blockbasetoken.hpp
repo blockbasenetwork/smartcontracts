@@ -65,7 +65,7 @@ namespace eosio {
             void open(const name& owner, const symbol& symbol, const name& ram_payer);
 
             [[eosio::action]]
-            void leaveledger(const name& owner, const name& producer, const name& sidechain);
+            void leaveledger(const name& owner, const name& sidechain);
 
             [[eosio::action]]
             void close(const name& owner, const symbol& symbol);
