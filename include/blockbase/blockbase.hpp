@@ -8,8 +8,6 @@ class[[eosio::contract]] blockbase : public eosio::contract {
   public:
     blockbase(eosio::name receiver, eosio::name code, eosio::datastream<const char *> ds) : eosio::contract(receiver, code, ds) {}
 
-#pragma region Global Variabels
-
     // Minimum
     const uint32_t MIN_PAYMENT = 0;
     const uint32_t MIN_WORKDAYS_IN_SECONDS = 1;
@@ -18,7 +16,7 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     const uint16_t MIN_CANDIDATURE_TIME_IN_SECONDS = 1;
     const uint16_t MIN_IP_SEND_TIME_IN_SECONDS = 1;
     const uint8_t MIN_REQUIRED_PRODUCERS = 1;
-    
+
     // Warning
     const uint8_t WARNING_TYPE_CLEAR = 0;
     const uint8_t WARNING_TYPE_FLAGGED = 1;
@@ -44,9 +42,6 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     const eosio::name VERIFY_PERMISSION_NAME = eosio::name("verifyblock");
     const std::vector<eosio::name> VERIFY_PERMISSION_ACTION{eosio::name("verifyblock")};
     const eosio::name CKEY = eosio::name("currentprod");
-
-#pragma endregion
-#pragma region Contract Tables
 
     // Producers Table
     struct [[eosio::table]] producers {
@@ -195,9 +190,6 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     };
     typedef eosio::multi_index<eosio::name("histval"), histval> histvalIndex;
 
-#pragma endregion
-#pragma region Action Methods
-
     [[eosio::action]] void startchain(eosio::name owner, std::string publicKey);
     [[eosio::action]] void configchain(eosio::name owner, blockbase::contractinfo infoJson, std::vector<eosio::name> reservedSeats);
     [[eosio::action]] void startcandtime(eosio::name owner);
@@ -222,6 +214,13 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     [[eosio::action]] void reqhistval(eosio::name owner, eosio::name producer, std::string blockHash, int32_t byteIndex);
     [[eosio::action]] void histvalidate(eosio::name owner, eosio::name producer, std::string byteInHex);
 
+    std::map<eosio::name, asset> static GetProducersToPunishInfo(const name &contract, const name &owner);
+    static uint64_t GetProducerRewardAmount(eosio::name contract, eosio::name claimer);
+    static bool IsProducer(eosio::name contract, eosio::name owner, eosio::name producer);
+    static bool IsStakeRecoverable(eosio::name contract, eosio::name owner, eosio::name producer);
+    static bool IsServiceRequester(const name &contract, const name &owner);
+
+  private:
     bool IsSecretValid(eosio::name owner, eosio::name name, checksum256 secret);
     bool HasBlockBeenProduced(eosio::name owner, eosio::name producer);
     bool IsPublicKeyValid(std::string publicKey);
@@ -230,8 +229,6 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     bool IsCandidaturePhase(eosio::name owner);
     bool IsBlockValid(eosio::name owner, blockheaders block);
     bool IsProducerTurn(eosio::name owner, eosio::name producer);
-    static bool IsStakeRecoverable(eosio::name contract, eosio::name owner, eosio::name producer);
-    static bool IsProducer(eosio::name contract, eosio::name owner, eosio::name producer);
     void RunSettlement(eosio::name owner);
     void RemoveBadProducers(eosio::name owner);
     void EvaluateProducer(eosio::name owner, eosio::name producer, uint16_t failedBlocks, uint16_t producedBlocks);
@@ -264,13 +261,9 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     std::vector<struct blockbase::candidates> RunCandidatesSelectionForType(eosio::name owner, uint8_t producerType);
     std::vector<struct blockbase::producers> GetPunishedProducers(eosio::name owner);
     std::vector<struct blockbase::producers> GetProducersWhoFailedToSendIPs(eosio::name owner);
-    static uint64_t GetProducerRewardAmount(eosio::name contract, eosio::name claimer);
     blockbase::producers GetNextProducer(eosio::name owner);
     std::vector<struct blockbase::blockheaders> GetLatestBlock(eosio::name owner);
     std::vector<struct blockbase::producers> GetReadyProducers(eosio::name owner);
-    std::map<eosio::name, asset> static GetProducersToPunishInfo(const name &contract, const name &owner);
     void RemoveProducerWithWorktimeFinnished(eosio::name owner);
-    bool static IsServiceRequester(const name &contract, const name &owner);
     void CheckHistoryValidation(eosio::name owner);
-#pragma endregion
 };
