@@ -186,6 +186,15 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     };
     typedef eosio::multi_index<eosio::name("rewards"), pendingrewards> rewardsIndex;
 
+    // History Validation
+    struct [[eosio::table]] histval {
+        eosio::name key;
+        std::string block_hash;
+        uint32_t byte_index;
+        uint64_t primary_key() const { return key.value; }
+    };
+    typedef eosio::multi_index<eosio::name("histval"), histval> histvalIndex;
+
 #pragma endregion
 #pragma region Action Methods
 
@@ -210,6 +219,8 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     [[eosio::action]] void verifyblock(eosio::name owner, eosio::name producer, std::string blockHash);
     [[eosio::action]] void endservice(eosio::name owner);
     [[eosio::action]] void blacklistprod(eosio::name owner);
+    [[eosio::action]] void reqhistval(eosio::name owner, eosio::name producer, std::string blockHash, int32_t byteIndex);
+    [[eosio::action]] void histvalidate(eosio::name owner, eosio::name producer, std::string byteInHex);
 
     bool IsSecretValid(eosio::name owner, eosio::name name, checksum256 secret);
     bool HasBlockBeenProduced(eosio::name owner, eosio::name producer);
@@ -260,5 +271,6 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     std::map<eosio::name, asset> static GetProducersToPunishInfo(const name &contract, const name &owner);
     void RemoveProducerWithWorktimeFinnished(eosio::name owner);
     bool static IsServiceRequester(const name &contract, const name &owner);
+    void CheckHistoryValidation(eosio::name owner);
 #pragma endregion
 };

@@ -23,6 +23,7 @@ void blockbase::RunSettlement(eosio::name owner) {
     }
     ResetBlockCountDAM(owner);
     IsRequesterStakeEnough(owner);
+    CheckHistoryValidation(owner);
     RemoveProducerWithWorktimeFinnished(owner);
     eosio::print("Computation has ended. \n");
 }

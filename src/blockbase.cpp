@@ -40,7 +40,7 @@
     eosio::print("Chain started. You can now insert your configurations. \n");
 }
 
-    [[eosio::action]] void blockbase::configchain(eosio::name owner, blockbase::contractinfo infoJson, std::vector<eosio::name> reservedSeats) {
+[[eosio::action]] void blockbase::configchain(eosio::name owner, blockbase::contractinfo infoJson, std::vector<eosio::name> reservedSeats) {
     require_auth(owner);
 
     stateIndex _states(_self, owner.value);
@@ -96,7 +96,7 @@
     eosio::print("Start candidature time. \n");
 }
 
-    [[eosio::action]] void blockbase::secrettime(eosio::name owner) {
+[[eosio::action]] void blockbase::secrettime(eosio::name owner) {
     require_auth(owner);
     eosio::print("Candidature time ended. \n");
 
@@ -149,7 +149,7 @@
 
     std::vector<struct blockbase::candidates> selectedCandidateList = RunCandidatesSelection(owner);
     if (producersInSidechainCount + selectedCandidateList.size() < numberOfProducersRequired) {
-        if (producersInSidechainCount < ceil((numberOfProducersRequired) * MIN_PRODUCERS_IN_CHAIN_THRESHOLD)) {
+        if (producersInSidechainCount < ceil((numberOfProducersRequired)*MIN_PRODUCERS_IN_CHAIN_THRESHOLD)) {
             ChangeContractStateDAM({owner, true, false, false, false, false, false, false});
             RemoveBlockCountDAM(owner);
             RemoveIPsDAM(owner);
@@ -176,7 +176,7 @@
     }
 }
 
-    [[eosio::action]] void blockbase::startrectime(eosio::name owner) {
+[[eosio::action]] void blockbase::startrectime(eosio::name owner) {
     require_auth(owner);
     eosio::print("Send time ended. \n");
     producersIndex _producers(_self, owner.value);
@@ -246,7 +246,7 @@
 #pragma endregion
 #pragma region User Actions
 
-    [[eosio::action]] void blockbase::addcandidate(eosio::name owner, eosio::name candidate, uint64_t &workDurationInSeconds, std::string &publicKey, checksum256 secretHash, uint8_t producerType) {
+[[eosio::action]] void blockbase::addcandidate(eosio::name owner, eosio::name candidate, uint64_t &workDurationInSeconds, std::string &publicKey, checksum256 secretHash, uint8_t producerType) {
     require_auth(candidate);
 
     stateIndex _states(_self, owner.value);
@@ -289,7 +289,7 @@
     eosio::print("Information successfully inserted. \n");
 }
 
-    [[eosio::action]] void blockbase::addsecret(eosio::name owner, eosio::name producer, checksum256 secret) {
+[[eosio::action]] void blockbase::addsecret(eosio::name owner, eosio::name producer, checksum256 secret) {
     require_auth(producer);
 
     stateIndex _states(_self, owner.value);
@@ -328,7 +328,7 @@
     eosio::print("Block submited with success. \n");
 }
 
-    [[eosio::action]] void blockbase::rcandidate(eosio::name owner, eosio::name producer) {
+[[eosio::action]] void blockbase::rcandidate(eosio::name owner, eosio::name producer) {
     require_auth(producer);
 
     stateIndex _states(_self, owner.value);
@@ -358,7 +358,7 @@
         _rewards.erase(rewardForProducer);
 }
 
-    [[eosio::action]] void blockbase::removeblisted(eosio::name owner, eosio::name producer) {
+[[eosio::action]] void blockbase::removeblisted(eosio::name owner, eosio::name producer) {
     require_auth(owner);
     producersIndex _producers(_self, owner.value);
     candidatesIndex _candidates(_self, owner.value);
@@ -381,7 +381,7 @@
     eosio::print("Producer ", producer, "is ready and will start producting. \n");
 }
 
-    [[eosio::action]] void blockbase::extendwrktime(eosio::name owner, eosio::name producer, uint64_t &worktimeToAddInSeconds) {
+[[eosio::action]] void blockbase::extendwrktime(eosio::name owner, eosio::name producer, uint64_t &worktimeToAddInSeconds) {
     require_auth(producer);
     producersIndex _producers(_self, owner.value);
     auto producerI = _producers.find(producer.value);
@@ -414,7 +414,7 @@
     _producers.erase(producerToRemove);
 }
 
-    [[eosio::action]] void blockbase::changecprod(eosio::name owner) {
+[[eosio::action]] void blockbase::changecprod(eosio::name owner) {
     require_auth(owner);
 
     eosio::print("Updating current producer... \n");
@@ -492,7 +492,7 @@
     }
 }
 
-    [[eosio::action]] void blockbase::blacklistprod(eosio::name owner) {
+[[eosio::action]] void blockbase::blacklistprod(eosio::name owner) {
     require_auth(owner);
     producersIndex _producers(_self, owner.value);
     blacklistIndex _blacklists(_self, owner.value);
@@ -510,6 +510,30 @@
     ReOpenCandidaturePhaseIfRequired(owner);
     if (std::distance(_producers.begin(), _producers.end()) != 0 && std::distance(_currentprods.begin(), _currentprods.end()) == 0) {
         UpdateCurrentProducerDAM(owner, (_producers.begin())->key);
+    }
+}
+
+[[eosio::action]] void blockbase::reqhistval(eosio::name owner, eosio::name producer, std::string blockHash, int32_t byteIndex) {
+    require_auth(owner);
+    histvalIndex _histval(_self, owner.value);
+    _histval.emplace(owner, [&](auto &historyValidationI) {
+        historyValidationI.key = producer;
+        historyValidationI.block_hash = blockHash;
+        historyValidationI.byte_index = byteIndex;
+    });
+}
+
+[[eosio::action]] void blockbase::histvalidate(eosio::name owner, eosio::name producer, std::string byteInHex) {
+    require_auth(owner);
+    histvalIndex _histval(_self, owner.value);
+    producersIndex _producers(_self, owner.value);
+    auto itr = _histval.begin();
+    while (itr != _histval.end()) {
+        if(itr -> key.value == producer.value) {
+            auto producerInTable = _producers.find(itr->key.value);
+            if (producerInTable -> warning_type == WARNING_TYPE_FLAGGED) UpdateWarningDAM(owner, producer, WARNING_TYPE_CLEAR);
+            _histval.erase(itr);
+        }
     }
 }
 

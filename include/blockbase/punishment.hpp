@@ -20,6 +20,20 @@ void blockbase::EvaluateProducer(eosio::name owner, eosio::name producer, uint16
     }
 }
 
+void blockbase::CheckHistoryValidation(eosio::name owner) {
+    histvalIndex _histval(_self, owner.value);
+    producersIndex _producers(_self, owner.value);
+    auto histval = _histval.begin();
+    if (histval != _histval.end()) {
+        auto producerInTable = _producers.find(histval->key.value);
+        if (producerInTable -> warning_type == WARNING_TYPE_FLAGGED) {
+            UpdateWarningDAM(owner, producerInTable->key, WARNING_TYPE_PUNISH);
+        } else {
+            UpdateWarningDAM(owner, producerInTable->key, WARNING_TYPE_FLAGGED);
+        }
+    }
+}
+
 std::vector<struct blockbase::producers> blockbase::GetPunishedProducers(eosio::name owner) {
     producersIndex _producers(_self, owner.value);
     std::vector<struct blockbase::producers> producerToPunish;
