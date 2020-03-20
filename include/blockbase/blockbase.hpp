@@ -185,7 +185,6 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     struct [[eosio::table]] histval {
         eosio::name key;
         std::string block_hash;
-        uint32_t byte_index;
         std::string block_byte_in_hex;
         uint64_t primary_key() const { return key.value; }
     };
@@ -212,7 +211,7 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     [[eosio::action]] void verifyblock(eosio::name owner, eosio::name producer, std::string blockHash);
     [[eosio::action]] void endservice(eosio::name owner);
     [[eosio::action]] void blacklistprod(eosio::name owner);
-    [[eosio::action]] void reqhistval(eosio::name owner, eosio::name producer, std::string blockHash, int32_t byteIndex);
+    [[eosio::action]] void reqhistval(eosio::name owner, eosio::name producer, std::string blockHash);
     [[eosio::action]] void addblckbyte(eosio::name owner, eosio::name producer, std::string byteInHex);
     [[eosio::action]] void histvalidate(eosio::name owner, eosio::name producer);
 

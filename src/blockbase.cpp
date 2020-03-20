@@ -513,13 +513,12 @@
     }
 }
 
-[[eosio::action]] void blockbase::reqhistval(eosio::name owner, eosio::name producer, std::string blockHash, int32_t byteIndex) {
+[[eosio::action]] void blockbase::reqhistval(eosio::name owner, eosio::name producer, std::string blockHash) {
     require_auth(owner);
     histvalIndex _histval(_self, owner.value);
     _histval.emplace(owner, [&](auto &historyValidationI) {
         historyValidationI.key = producer;
         historyValidationI.block_hash = blockHash;
-        historyValidationI.byte_index = byteIndex;
     });
 }
 
