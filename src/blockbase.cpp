@@ -523,7 +523,19 @@
     });
 }
 
-[[eosio::action]] void blockbase::histvalidate(eosio::name owner, eosio::name producer, std::string byteInHex) {
+[[eosio::action]] void blockbase::addblckbyte(eosio::name owner, eosio::name producer, std::string byteInHex) {
+    require_auth(producer);
+    histvalIndex _histval(_self, owner.value);
+    auto itr = _histval.begin();
+    check(itr != _histval.end(), "No validation request inserted");
+    check(itr->key.value == producer.value, "Not requested producer");
+
+    _histval.modify(itr, same_payer, [&](auto &historyValidationI) {
+        historyValidationI.block_byte_in_hex = byteInHex;
+    });
+}
+
+[[eosio::action]] void blockbase::histvalidate(eosio::name owner, eosio::name producer) {
     require_auth(owner);
     histvalIndex _histval(_self, owner.value);
     producersIndex _producers(_self, owner.value);

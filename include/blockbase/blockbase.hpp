@@ -186,6 +186,7 @@ class[[eosio::contract]] blockbase : public eosio::contract {
         eosio::name key;
         std::string block_hash;
         uint32_t byte_index;
+        std::string block_byte_in_hex;
         uint64_t primary_key() const { return key.value; }
     };
     typedef eosio::multi_index<eosio::name("histval"), histval> histvalIndex;
@@ -212,7 +213,8 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     [[eosio::action]] void endservice(eosio::name owner);
     [[eosio::action]] void blacklistprod(eosio::name owner);
     [[eosio::action]] void reqhistval(eosio::name owner, eosio::name producer, std::string blockHash, int32_t byteIndex);
-    [[eosio::action]] void histvalidate(eosio::name owner, eosio::name producer, std::string byteInHex);
+    [[eosio::action]] void addblckbyte(eosio::name owner, eosio::name producer, std::string byteInHex);
+    [[eosio::action]] void histvalidate(eosio::name owner, eosio::name producer);
 
     std::map<eosio::name, asset> static GetProducersToPunishInfo(const name &contract, const name &owner);
     static uint64_t GetProducerRewardAmount(eosio::name contract, eosio::name claimer);
