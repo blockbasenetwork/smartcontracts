@@ -31,6 +31,7 @@ void blockbase::CheckHistoryValidation(eosio::name owner) {
         } else {
             UpdateWarningDAM(owner, producerInTable->key, WARNING_TYPE_FLAGGED);
         }
+        _histval.erase(histval);
     }
 }
 
