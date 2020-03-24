@@ -48,6 +48,7 @@
     reservedseatIndex _reserverseats(_self, owner.value);
     auto state = _states.find(owner.value);
     auto numberOfProducersRequired = infoJson.number_of_validator_producers_required + infoJson.number_of_history_producers_required + infoJson.number_of_full_producers_required;
+    check(infoJson.key.value == owner.value, "Key in configurations isn't the same account as the sidechain owner");
     check(state != _states.end() && state->has_chain_started != false && state->is_production_phase == false, "This sidechain hasnt't been created yet, please create it first.");
     check(IsConfigurationValid(infoJson), "The configurantion inserted is incorrect or not valid, please insert it again.");
     eosio::asset ownerStake = blockbasetoken::get_stake(BLOCKBASE_TOKEN, owner, owner);
