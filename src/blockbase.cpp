@@ -543,8 +543,8 @@
     while (itr != _histval.end()) {
         if(itr -> key.value == producer.value) {
             auto producerInTable = _producers.find(itr->key.value);
-            if (producerInTable -> warning_type == WARNING_TYPE_FLAGGED) UpdateWarningDAM(owner, producer, WARNING_TYPE_CLEAR);
-            _histval.erase(itr);
+            if (producerInTable != _producers.end() && producerInTable -> warning_type == WARNING_TYPE_FLAGGED) UpdateWarningDAM(owner, producer, WARNING_TYPE_CLEAR);
+            itr = _histval.erase(itr);
         }
     }
 }
