@@ -530,7 +530,7 @@
     check(itr != _histval.end(), "No validation request inserted");
     check(itr->key.value == producer.value, "Not requested producer");
 
-    _histval.modify(itr, same_payer, [&](auto &historyValidationI) {
+    _histval.modify(itr, producer, [&](auto &historyValidationI) {
         historyValidationI.block_byte_in_hex = byteInHex;
     });
 }
