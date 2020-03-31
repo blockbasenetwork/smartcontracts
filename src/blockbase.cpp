@@ -560,6 +560,7 @@
     blacklistIndex _blacklists(_self, owner.value);
     rewardsIndex _rewards(_self, owner.value);
     blockheadersIndex _blockheaders(_self, owner.value);
+    histvalIndex _histval(_self, owner.value);
 
     RemoveProducersDAM(owner);
     RemoveIPsDAM(owner);
@@ -596,6 +597,10 @@
     auto itr7 = _blockheaders.begin();
     while (itr7 != _blockheaders.end())
         itr7 = _blockheaders.erase(itr7);
+
+    auto itr8 = _histval.begin();
+    while (itr8 != _histval.end())
+        itr8 = _histval.erase(itr8);
 
     eosio::print("Service Ended. \n");
 }
