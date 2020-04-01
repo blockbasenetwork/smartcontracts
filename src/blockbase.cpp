@@ -517,6 +517,8 @@
 [[eosio::action]] void blockbase::reqhistval(eosio::name owner, eosio::name producer, std::string blockHash) {
     require_auth(owner);
     histvalIndex _histval(_self, owner.value);
+    auto itr = _histval.begin();
+    check(itr == _histval.end(), "Validation request already inserted");
     _histval.emplace(owner, [&](auto &historyValidationI) {
         historyValidationI.key = producer;
         historyValidationI.block_hash = blockHash;
@@ -547,6 +549,26 @@
             itr = _histval.erase(itr);
         }
     }
+}
+
+[[eosio::action]] void blockbase::addaccperm(eosio::name owner, eosio::name account, std::string publicKey, std::string permissions) {
+    require_auth(owner);
+    accpermIndex _accperm(_self, owner.value);
+    auto accountInTable = _accperm.find(account.value);
+    check(accountInTable == _accperm.end(), "Permissions for this account already inserted");
+    _accperm.emplace(owner, [&](auto &accpermI) {
+        accpermI.key = account;
+        accpermI.public_key = publicKey;
+        accpermI.permissions = permissions;
+    });
+}
+
+[[eosio::action]] void blockbase::remaccperm(eosio::name owner, eosio::name account) {
+    require_auth(owner);
+    accpermIndex _accperm(_self, owner.value);
+    auto accountInTable = _accperm.find(account.value);
+    check(accountInTable != _accperm.end(), "Account permissions not found");
+    _accperm.erase(accountInTable);
 }
 
 [[eosio::action]] void blockbase::endservice(eosio::name owner) {

@@ -190,6 +190,15 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     };
     typedef eosio::multi_index<eosio::name("histval"), histval> histvalIndex;
 
+    // AccountsPermissions
+    struct [[eosio::table]] accperm {
+        eosio::name key;
+        std::string public_key;
+        std::string permissions;
+        uint64_t primary_key() const { return key.value; }
+    };
+    typedef eosio::multi_index<eosio::name("accperm"), accperm> accpermIndex;
+
     [[eosio::action]] void startchain(eosio::name owner, std::string publicKey);
     [[eosio::action]] void configchain(eosio::name owner, blockbase::contractinfo infoJson, std::vector<eosio::name> reservedSeats);
     [[eosio::action]] void startcandtime(eosio::name owner);
@@ -214,6 +223,8 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     [[eosio::action]] void reqhistval(eosio::name owner, eosio::name producer, std::string blockHash);
     [[eosio::action]] void addblckbyte(eosio::name owner, eosio::name producer, std::string byteInHex);
     [[eosio::action]] void histvalidate(eosio::name owner, eosio::name producer);
+    [[eosio::action]] void addaccperm(eosio::name owner, eosio::name account, std::string publicKey, std::string permissions);
+    [[eosio::action]] void remaccperm(eosio::name owner, eosio::name account);
 
     std::map<eosio::name, asset> static GetProducersToPunishInfo(const name &contract, const name &owner);
     static uint64_t GetProducerRewardAmount(eosio::name contract, eosio::name claimer);
