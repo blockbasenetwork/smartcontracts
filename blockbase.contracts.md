@@ -78,7 +78,7 @@ Triggered when the ip send time ends and the transaction is executed. This actio
 
 Launches a scheduled deferred transaction to be executed when the time defined in the configuration ends.
 
-<h1 class="contract">prodtime</h1>
+<h1 class="contract">startprodtime</h1>
 
 ---
 spec_version: "0.2.0"
@@ -157,7 +157,7 @@ icon:
 
 This action will be responsible for the rewards reset. It will receive the {{ owner }} and the {{ producer }} and will be called by the token account This action will reset the reward from a {{ producer }} by modifying the multi index table. 
 
-<h1 class="contract">blistremoval</h1>
+<h1 class="contract">removeblisted</h1>
 
 ---
 spec_version: "0.2.0"
@@ -212,6 +212,17 @@ icon:
 
 Action ran by a multi sig transaction sent by the producers to confirm that the block header is valid. This action will receive as paramenter the {{ owner }} of the chain, the {{ producer }} and the {{ blockhash }} of the submited block.
 
+<h1 class="contract">blacklistprod</h1>
+
+---
+spec_version: "0.2.0"
+title: Black list bad producer
+summary: 'Insert bad producer in contract black list'
+icon:
+---
+
+Action ran in the smartcontract, that verifies if bad producer actualy did a bad job and them insert in smart contract multi index table for future proof of the bad behavior. This action will receive as paramenter the {{ owner }} of the chain, the {{ producer }} to be able to sucessfully insert the bad producer.
+
 <h1 class="contract">endservice</h1>
 
 ---
@@ -222,3 +233,14 @@ icon:
 ---
 
 This action will allow the {{ owner }} to end the service of the chain. This action enables a sidechain owner to delete the sidechain and clear the tables of their data. This action will receive and be paid by the {{ owner }}
+
+<h1 class="contract">extendwrktime</h1>
+
+---
+spec_version: "0.2.0"
+title: Extend Work Time
+summary: 'Allows the producer to extend his work time'
+icon:
+---
+
+Action ran in the smartcontract that will allow the {{ producer }} to extend his work time in a sidechain. This action enables the producer to increase his work time in a certain sidechain, submitting a {{ worktimeToAddInSeconds }} for the desired work time. This action will receive the {{ owner }} of the chain, the {{ producer }} that is requesting the time extension and the {{ worktimeToAddInSeconds }} for the desired extension. This action will be paid by the {{ producer }}

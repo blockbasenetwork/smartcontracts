@@ -1,15 +1,15 @@
 #pragma region Payment Methods
 
-void blockbase::rewardprod(eosio::name owner ,eosio::name producer, uint16_t quantity) {
+void blockbase::RewardProducerDAM(eosio::name owner ,eosio::name producer, uint64_t quantity) {
     rewardsIndex _rewards(_self, producer.value);
-    auto rewardsforproducer = _rewards.find(producer.value);
-    if(rewardsforproducer == _rewards.end()) {
+    auto rewardsForProducer = _rewards.find(owner.value);
+    if(rewardsForProducer == _rewards.end()) {
         _rewards.emplace(owner, [&](auto &reward) {
-            reward.key = producer;
+            reward.key = owner;
             reward.reward = quantity;
         });
     } else {
-        _rewards.modify(rewardsforproducer, owner, [&](auto &reward) {
+        _rewards.modify(rewardsForProducer, owner, [&](auto &reward) {
             reward.reward += quantity;
         });
     }

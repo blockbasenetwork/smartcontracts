@@ -27,7 +27,7 @@ namespace eosio {
         public:
             using contract::contract;
 
-            const eosio::name BLOCKBASE_CONTRACT = eosio::name("blockbase");
+            const eosio::name BLOCKBASE_CONTRACT = eosio::name("blockbaseopr");
 
             [[eosio::action]]
             void create(const name&   issuer,
@@ -56,18 +56,16 @@ namespace eosio {
                                  const name& contract);
 
             [[eosio::action]]
-            void claimreward(const name& owner, const name& claimer, const name& contract);
+            void claimreward(const name& sidechain, const name& claimer);
 
             [[eosio::action]]
-            void claimstake(const name& claimer, 
-                                 const name& sidechain, 
-                                 const name& contract);
+            void claimstake(const name& sidechain, const name& claimer);
 
             [[eosio::action]]
             void open(const name& owner, const symbol& symbol, const name& ram_payer);
 
             [[eosio::action]]
-            void leaveledger(const name& owner, const name& producer, const name& sidechain);
+            void leaveledger(const name& owner, const name& sidechain);
 
             [[eosio::action]]
             void close(const name& owner, const symbol& symbol);
