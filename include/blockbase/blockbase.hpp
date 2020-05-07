@@ -199,6 +199,15 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     };
     typedef eosio::multi_index<eosio::name("accperm"), accperm> accpermIndex;
 
+    // VerifySignatures
+    struct [[eosio::table]] verifysig {
+        eosio::name key;
+        std::string block_hash;
+        std::string verify_signature;
+        uint64_t primary_key() const { return key.value; }
+    };
+    typedef eosio::multi_index<eosio::name("verifysig"), verifysig> verifysigIndex;
+
     [[eosio::action]] void startchain(eosio::name owner, std::string publicKey);
     [[eosio::action]] void configchain(eosio::name owner, blockbase::contractinfo infoJson, std::vector<eosio::name> reservedSeats);
     [[eosio::action]] void startcandtime(eosio::name owner);
@@ -225,6 +234,7 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     [[eosio::action]] void histvalidate(eosio::name owner, eosio::name producer);
     [[eosio::action]] void addaccperm(eosio::name owner, eosio::name account, std::string publicKey, std::string permissions);
     [[eosio::action]] void remaccperm(eosio::name owner, eosio::name account);
+    [[eosio::action]] void addversig(eosio::name owner, eosio::name account, std::string blockHash, std::string verifySignature);
 
     std::map<eosio::name, asset> static GetProducersToPunishInfo(const name &contract, const name &owner);
     static uint64_t GetProducerRewardAmount(eosio::name contract, eosio::name claimer);
