@@ -571,7 +571,7 @@
     _accperm.erase(accountInTable);
 }
 
-[[eosio::action]] void blockbase::addversig(eosio::name owner, eosio::name account, std::string blockHash, std::string verifySignature) {
+[[eosio::action]] void blockbase::addversig(eosio::name owner, eosio::name account, std::string blockHash, std::string verifySignature, std::vector<char> packedTransaction) {
     require_auth(account);
     verifysigIndex _verifysig(_self, owner.value);
     auto sigInTable = _verifysig.find(account.value);
@@ -580,6 +580,7 @@
         versigI.key = account;
         versigI.block_hash = blockHash;
         versigI.verify_signature = verifySignature;
+        versigI.packed_transaction = packedTransaction;
     });
 }
 
