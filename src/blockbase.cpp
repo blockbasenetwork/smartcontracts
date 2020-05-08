@@ -425,6 +425,7 @@
     clientIndex _clients(_self, owner.value);
     currentprodIndex _currentprods(_self, owner.value);
     blockscountIndex _blockscount(_self, owner.value);
+    verifysigIndex _verifysig(_self, owner.value);
 
     auto info = _infos.find(owner.value);
     auto state = _states.find(owner.value);
@@ -459,6 +460,11 @@
                 eosio::print("Same producer producing blocks. \n");
         }
     }
+
+    auto deleteitr = _verifysig.begin();
+    while (deleteitr != _verifysig.end())
+        deleteitr = _verifysig.erase(deleteitr);
+
     ReOpenCandidaturePhaseIfRequired(owner);
 }
 
