@@ -549,9 +549,10 @@
     producersIndex _producers(_self, owner.value);
     auto itr = _histval.begin();
     while (itr != _histval.end()) {
-        if(itr -> key.value == producer.value) {
+        if (itr->key.value == producer.value) {
             auto producerInTable = _producers.find(itr->key.value);
-            if (producerInTable != _producers.end() && producerInTable -> warning_type == WARNING_TYPE_FLAGGED) UpdateWarningDAM(owner, producer, WARNING_TYPE_CLEAR);
+            if (producerInTable != _producers.end() && producerInTable->warning_type == WARNING_TYPE_FLAGGED)
+                UpdateWarningDAM(owner, producer, WARNING_TYPE_CLEAR);
             itr = _histval.erase(itr);
         }
     }
@@ -602,6 +603,7 @@
     rewardsIndex _rewards(_self, owner.value);
     blockheadersIndex _blockheaders(_self, owner.value);
     histvalIndex _histval(_self, owner.value);
+    verifysigIndex _verifysig(_self, owner.value);
 
     RemoveProducersDAM(owner);
     RemoveIPsDAM(owner);
@@ -642,6 +644,10 @@
     auto itr8 = _histval.begin();
     while (itr8 != _histval.end())
         itr8 = _histval.erase(itr8);
+
+    auto itr9 = _verifysig.begin();
+    while (itr9 != _verifysig.end())
+        itr9 = _verifysig.erase(itr9);
 
     eosio::print("Service Ended. \n");
 }
