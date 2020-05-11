@@ -582,7 +582,7 @@
     verifysigIndex _verifysig(_self, owner.value);
     auto sigInTable = _verifysig.find(account.value);
     check(sigInTable == _verifysig.end(), "Verify signature already inserted");
-    _verifysig.emplace(owner, [&](auto &versigI) {
+    _verifysig.emplace(account, [&](auto &versigI) {
         versigI.key = account;
         versigI.block_hash = blockHash;
         versigI.verify_signature = verifySignature;
