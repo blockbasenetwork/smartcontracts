@@ -33,7 +33,7 @@ bool blockbase::IsBlockValid(eosio::name owner, blockbase::blockheaders block) {
     std::vector<struct blockbase::blockheaders> lastestBlockList = GetLatestBlock(owner);
 
     if(block.timestamp < eosio::current_block_time().to_time_point().sec_since_epoch() - (3*info->block_time_in_seconds) || block.timestamp > eosio::current_block_time().to_time_point().sec_since_epoch()) return false;
-
+    if(block.block_size_in_bytes > info -> block_size_in_bytes) return false;
     if(lastestBlockList.size() == 0 && blockHeadersTableSize == 0 && block.sequence_number == 1) return true;
 
     if(lastestBlockList.size() > 0 && blockHeadersTableSize <= 0) {
@@ -82,6 +82,7 @@ void blockbase::AddBlockDAM(eosio::name owner, eosio::name producer, blockbase::
         newBlockI.merkletree_root_hash = block.merkletree_root_hash;
         newBlockI.is_verified = false;
         newBlockI.is_latest_block = false;
+        newBlockI.block_size_in_bytes = block.block_size_in_bytes;
     });
 
     if(std::distance(_blockheaders.begin(), _blockheaders.end()) > (info -> num_blocks_between_settlements)) _blockheaders.erase(_blockheaders.begin());

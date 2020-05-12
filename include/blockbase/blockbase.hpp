@@ -87,6 +87,7 @@ class[[eosio::contract]] blockbase : public eosio::contract {
         std::string merkletree_root_hash;
         bool is_verified;
         bool is_latest_block;
+        uint64_t block_size_in_bytes;
         uint64_t primary_key() const { return sequence_number; }
     };
     typedef eosio::multi_index<eosio::name("blockheaders"), blockheaders> blockheadersIndex;
@@ -125,9 +126,12 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     // Contract Information Table
     struct [[eosio::table]] contractinfo {
         eosio::name key;
-        uint64_t payment_per_block_validator_producers;
-        uint64_t payment_per_block_history_producers;
-        uint64_t payment_per_block_full_producers;
+        uint64_t max_payment_per_block_validator_producers;
+        uint64_t max_payment_per_block_history_producers;
+        uint64_t max_payment_per_block_full_producers;
+        uint64_t min_payment_per_block_validator_producers;
+        uint64_t min_payment_per_block_history_producers;
+        uint64_t min_payment_per_block_full_producers;
         uint64_t min_candidature_stake;
         uint32_t number_of_validator_producers_required;
         uint32_t number_of_history_producers_required;
@@ -280,6 +284,7 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     void RemoveCandidateDAM(eosio::name owner, eosio::name candidate);
     uint8_t CalculateNumberOfIPsRequired(float numberOfProducers);
     uint8_t CalculateMultiSigThreshold(uint8_t producersNumber);
+    uint64_t CalculateRewardBasedOnBlockSize(eosio::name owner, struct blockbase::producers producer);
     std::vector<struct blockbase::candidates> RunCandidatesSelection(eosio::name owner);
     std::vector<struct blockbase::candidates> RunCandidatesSelectionForType(eosio::name owner, uint8_t producerType);
     std::vector<struct blockbase::producers> GetPunishedProducers(eosio::name owner);

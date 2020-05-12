@@ -157,9 +157,12 @@
          
         _infos.emplace(owner, [&](auto &newInfoI) {
             newInfoI.key = owner;
-            newInfoI.payment_per_block_validator_producers = informationJson.payment_per_block_validator_producers;
-            newInfoI.payment_per_block_history_producers = informationJson.payment_per_block_history_producers;
-            newInfoI.payment_per_block_full_producers = informationJson.payment_per_block_full_producers;
+            newInfoI.max_payment_per_block_validator_producers = informationJson.max_payment_per_block_validator_producers;
+            newInfoI.max_payment_per_block_history_producers = informationJson.max_payment_per_block_history_producers;
+            newInfoI.max_payment_per_block_full_producers = informationJson.max_payment_per_block_full_producers;
+            newInfoI.min_payment_per_block_validator_producers = informationJson.min_payment_per_block_validator_producers;
+            newInfoI.min_payment_per_block_history_producers = informationJson.min_payment_per_block_history_producers;
+            newInfoI.min_payment_per_block_full_producers = informationJson.min_payment_per_block_full_producers;
             newInfoI.min_candidature_stake = informationJson.min_candidature_stake;
             newInfoI.number_of_validator_producers_required = informationJson.number_of_validator_producers_required;
             newInfoI.number_of_history_producers_required = informationJson.number_of_history_producers_required;
