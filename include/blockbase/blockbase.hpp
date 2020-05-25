@@ -10,6 +10,7 @@ class[[eosio::contract]] blockbase : public eosio::contract {
 
     // Minimum
     const uint32_t MIN_PAYMENT = 0;
+    const uint32_t MIN_WORKDAYS_IN_SECONDS = 1;
     const uint32_t MIN_CANDIDATE_STAKE = 1;
     const uint32_t MIN_REQUESTER_STAKE = 1;
     const uint16_t MIN_CANDIDATURE_TIME_IN_SECONDS = 1;
@@ -48,6 +49,7 @@ class[[eosio::contract]] blockbase : public eosio::contract {
         std::string public_key;
         uint8_t producer_type;
         uint8_t warning_type;
+        uint64_t work_duration_in_seconds;
         uint64_t sidechain_start_date_in_seconds;
         bool is_ready_to_produce;
         uint64_t primary_key() const { return key.value; }
@@ -61,6 +63,7 @@ class[[eosio::contract]] blockbase : public eosio::contract {
         uint8_t producer_type;
         checksum256 secret_hash;
         checksum256 secret;
+        uint64_t work_duration_in_seconds;
         uint64_t primary_key() const { return key.value; }
     };
     typedef eosio::multi_index<eosio::name("candidates"), candidates> candidatesIndex;
@@ -141,8 +144,8 @@ class[[eosio::contract]] blockbase : public eosio::contract {
         uint32_t secret_sending_phase_end_date_in_seconds;
         uint32_t ip_sending_phase_end_date_in_seconds;
         uint32_t ip_retrieval_phase_end_date_in_seconds;
-        uint32_t block_time_in_seconds;
-        uint32_t num_blocks_between_settlements;
+        uint16_t block_time_in_seconds;
+        uint8_t num_blocks_between_settlements;
         uint64_t block_size_in_bytes;
         uint64_t primary_key() const { return key.value; }
     };
@@ -217,11 +220,12 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     [[eosio::action]] void startsendtime(eosio::name owner);
     [[eosio::action]] void startrectime(eosio::name owner);
     [[eosio::action]] void startprodtime(eosio::name owner);
-    [[eosio::action]] void addcandidate(eosio::name owner, eosio::name candidate, std::string & publicKey, checksum256 secretHash, uint8_t producerType);
+    [[eosio::action]] void addcandidate(eosio::name owner, eosio::name candidate, uint64_t & workDurationInSeconds, std::string & publicKey, checksum256 secretHash, uint8_t producerType);
     [[eosio::action]] void addsecret(eosio::name owner, eosio::name producer, checksum256 secret);
     [[eosio::action]] void rcandidate(eosio::name owner, eosio::name name);
     [[eosio::action]] void addencryptip(eosio::name owner, eosio::name name, std::vector<std::string> encryptedIps);
     [[eosio::action]] void changecprod(eosio::name owner);
+    [[eosio::action]] void extendwrktime(eosio::name owner, eosio::name producer, uint64_t & worktimeToAddInSeconds);
     [[eosio::action]] void addblock(eosio::name owner, eosio::name producer, blockbase::blockheaders block);
     [[eosio::action]] void removeblisted(eosio::name owner, eosio::name producer);
     [[eosio::action]] void stopproducing(eosio::name owner, eosio::name producer);
@@ -248,7 +252,7 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     bool HasBlockBeenProduced(eosio::name owner, eosio::name producer);
     bool IsPublicKeyValid(std::string publicKey);
     bool IsConfigurationValid(blockbase::contractinfo info);
-    bool IsCandidateValid(eosio::name owner, eosio::name producer);
+    bool IsCandidateValid(eosio::name owner, eosio::name producer, uint64_t workDurationInSeconds);
     bool IsCandidaturePhase(eosio::name owner);
     bool IsBlockValid(eosio::name owner, blockheaders block);
     bool IsProducerTurn(eosio::name owner, eosio::name producer);
@@ -262,7 +266,7 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     void UpdateCurrentProducerDAM(eosio::name owner, eosio::name nextProducer);
     void AddCandidatesWithReservedSeat(eosio::name owner);
     void AddBlockDAM(eosio::name owner, eosio::name producer, blockbase::blockheaders block);
-    void AddCandidateDAM(eosio::name owner, eosio::name candidate, std::string & publicKey, checksum256 secretHash, uint8_t producerType);
+    void AddCandidateDAM(eosio::name owner, eosio::name candidate, uint64_t & workDurationInSeconds, std::string & publicKey, checksum256 secretHash, uint8_t producerType);
     void AddProducerDAM(eosio::name owner, blockbase::candidates candidate);
     void AddPublicKeyDAM(eosio::name owner, eosio::name producer, std::string publicKey);
     void RemoveBlockCountDAM(eosio::name owner, std::vector<struct producers> producers);
@@ -288,5 +292,6 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     blockbase::producers GetNextProducer(eosio::name owner);
     std::vector<struct blockbase::blockheaders> GetLatestBlock(eosio::name owner);
     std::vector<struct blockbase::producers> GetReadyProducers(eosio::name owner);
+    void RemoveProducerWithWorktimeFinnished(eosio::name owner);
     void CheckHistoryValidation(eosio::name owner);
 };

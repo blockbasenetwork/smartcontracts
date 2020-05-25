@@ -21,7 +21,7 @@ void blockbase::RunSettlement(eosio::name owner) {
     ResetBlockCountDAM(owner);
     IsRequesterStakeEnough(owner);
     CheckHistoryValidation(owner);
-
+    RemoveProducerWithWorktimeFinnished(owner);
     eosio::print("Computation has ended. \n");
 }
 
@@ -155,4 +155,20 @@ void blockbase::DeleteCurrentProducerDAM(eosio::name owner, std::vector<struct p
     }
 }
 
+void blockbase::RemoveProducerWithWorktimeFinnished(eosio::name owner){
+    producersIndex _producers(_self, owner.value);
+    std::vector<struct producers> producersToRemove;
+    for(auto producer : _producers) {
+        if(producer.work_duration_in_seconds + producer.sidechain_start_date_in_seconds <= eosio::current_block_time().to_time_point().sec_since_epoch()) {
+            eosio::print("Producer ", producer.key," is leaving the sidechain with no penalties. His work time as expired.");
+            producersToRemove.push_back(producer);
+        }
+    }
+    if(std::distance(producersToRemove.begin(), producersToRemove.end()) > 0) {
+        RemoveIPsDAM(owner, producersToRemove);
+        RemoveProducersDAM(owner, producersToRemove);
+        DeleteCurrentProducerDAM(owner,producersToRemove);
+        RemoveBlockCountDAM(owner,producersToRemove);
+    }
+}
 #pragma endregion

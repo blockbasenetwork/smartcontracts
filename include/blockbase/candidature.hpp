@@ -30,11 +30,11 @@
         return ((state -> is_configuration_phase == true && state -> is_production_phase == false) || (state -> is_configuration_phase == true && state -> is_production_phase == true)) && state -> has_chain_started == true && state != _states.end();
     }
 
-    bool blockbase::IsCandidateValid(eosio::name owner, eosio::name producer) {
+    bool blockbase::IsCandidateValid(eosio::name owner, eosio::name producer, uint64_t work_duration_in_seconds) {
         producersIndex _producers(_self, owner.value);
         blacklistIndex _blacklists(_self, owner.value);
         candidatesIndex _candidates(_self, owner.value);
-        return (_producers.find(producer.value) == _producers.end()) && (_candidates.find(producer.value) == _candidates.end()) && (_blacklists.find(producer.value) == _blacklists.end());
+        return (_producers.find(producer.value) == _producers.end()) && (_candidates.find(producer.value) == _candidates.end()) && (_blacklists.find(producer.value) == _blacklists.end()) && (work_duration_in_seconds >= MIN_WORKDAYS_IN_SECONDS);
     }
 
     uint8_t blockbase::CalculateNumberOfIPsRequired(float numberOfProducers) {
@@ -117,10 +117,11 @@
         }
     }
 
-    void blockbase::AddCandidateDAM(eosio::name owner, eosio::name candidate, std::string &publicKey, checksum256 secretHash, uint8_t producerType) {
+    void blockbase::AddCandidateDAM(eosio::name owner, eosio::name candidate, uint64_t &workDurationInSeconds, std::string &publicKey, checksum256 secretHash, uint8_t producerType) {
         candidatesIndex _candidates(_self, owner.value);
         _candidates.emplace(candidate, [&](auto &newCandidateI) {
             newCandidateI.key = candidate;
+            newCandidateI.work_duration_in_seconds = workDurationInSeconds;
             newCandidateI.public_key = publicKey;
             newCandidateI.secret_hash = secretHash;
             newCandidateI.producer_type = producerType;
@@ -132,6 +133,7 @@
         _producers.emplace(owner, [&](auto &newProducerI) {
             newProducerI.key = candidate.key;
             newProducerI.public_key = candidate.public_key;
+            newProducerI.work_duration_in_seconds = candidate.work_duration_in_seconds;
             newProducerI.warning_type = WARNING_TYPE_CLEAR;
             newProducerI.is_ready_to_produce = false;
             newProducerI.sidechain_start_date_in_seconds = eosio::current_block_time().to_time_point().sec_since_epoch();
