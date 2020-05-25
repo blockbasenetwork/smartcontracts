@@ -247,7 +247,7 @@
 #pragma endregion
 #pragma region User Actions
 
-[[eosio::action]] void blockbase::addcandidate(eosio::name owner, eosio::name candidate, uint64_t &workDurationInSeconds, std::string &publicKey, checksum256 secretHash, uint8_t producerType) {
+[[eosio::action]] void blockbase::addcandidate(eosio::name owner, eosio::name candidate, std::string &publicKey, checksum256 secretHash, uint8_t producerType) {
     require_auth(candidate);
 
     stateIndex _states(_self, owner.value);
@@ -260,13 +260,13 @@
 
     check(blackListedAccount == _blacklists.end(), "This account is blacklisted and can't enter this sidechain. \n");
     check(state != _states.end() && state->has_chain_started != false && state->is_candidature_phase != false, "The chain is not in the correct state, please check the current state of the chain. \n");
-    check(IsCandidateValid(owner, candidate, workDurationInSeconds), "Candidature is invalid, please check the inserted values. \n");
+    check(IsCandidateValid(owner, candidate), "Candidature is invalid, please check the inserted values. \n");
     check(IsPublicKeyValid(publicKey), "Incorrect format in public key, try inserting again. \n");
     eosio::asset candidateStake = blockbasetoken::get_stake(BLOCKBASE_TOKEN, owner, candidate);
     check(candidateStake.amount > 0, "No stake inserted in the sidechain. Please insert a stake first.\n");
     check(candidateStake.amount > info->min_candidature_stake, "Stake inserted is not enough. Please insert more stake to be able to apply.\n");
     check(producerType == 1 || producerType == 2 || producerType == 3, "Incorrect producer type. Pleace choose a correct producer type");
-    AddCandidateDAM(owner, candidate, workDurationInSeconds, publicKey, secretHash, producerType);
+    AddCandidateDAM(owner, candidate, publicKey, secretHash, producerType);
     eosio::print("Candidate added. \n");
 }
 
@@ -380,16 +380,6 @@
         producerI.is_ready_to_produce = true;
     });
     eosio::print("Producer ", producer, "is ready and will start producting. \n");
-}
-
-[[eosio::action]] void blockbase::extendwrktime(eosio::name owner, eosio::name producer, uint64_t &worktimeToAddInSeconds) {
-    require_auth(producer);
-    producersIndex _producers(_self, owner.value);
-    auto producerI = _producers.find(producer.value);
-    check(producerI != _producers.end(), "Producer doesn't exist. \n");
-    _producers.modify(producerI, producer, [&](auto &producerIT) {
-        producerIT.work_duration_in_seconds = producerIT.work_duration_in_seconds + worktimeToAddInSeconds;
-    });
 }
 
 [[eosio::action]] void blockbase::stopproducing(eosio::name owner, eosio::name producer) {
