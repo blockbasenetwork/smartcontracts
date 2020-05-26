@@ -238,6 +238,7 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     [[eosio::action]] void addaccperm(eosio::name owner, eosio::name account, std::string publicKey, std::string permissions);
     [[eosio::action]] void remaccperm(eosio::name owner, eosio::name account);
     [[eosio::action]] void addversig(eosio::name owner, eosio::name account, std::string blockHash, std::string verifySignature, std::vector<char> packedTransaction);
+    [[eosio::action]] void exitrequest(eosio::name owner, eosio::name account);
 
     std::map<eosio::name, asset> static GetProducersToPunishInfo(const name &contract, const name &owner);
     static uint64_t GetProducerRewardAmount(eosio::name contract, eosio::name claimer);
