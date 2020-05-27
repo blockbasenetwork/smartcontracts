@@ -114,7 +114,7 @@
 
     auto numberOfProducersRequired = info->number_of_validator_producers_required + info->number_of_history_producers_required + info->number_of_full_producers_required;
     auto producersAndCandidatesInSidechainCount = std::distance(_producers.begin(), _producers.end()) + std::distance(_candidates.begin(), _candidates.end());
-    if (producersAndCandidatesInSidechainCount < numberOfProducersRequired) {
+    if (producersAndCandidatesInSidechainCount < ceil(numberOfProducersRequired * MIN_PRODUCERS_TO_PRODUCE_THRESHOLD)) {
         eosio::print("Starting candidature time again... \n");
         SetEndDateDAM(owner, CANDIDATURE_TIME_ID);
         ChangeContractStateDAM({owner, true, false, true, false, false, false, state->is_production_phase});
