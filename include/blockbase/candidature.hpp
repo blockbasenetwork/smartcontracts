@@ -143,7 +143,7 @@
         candidatesIndex _candidates(_self, owner.value);
         _candidates.emplace(candidate, [&](auto &newCandidateI) {
             newCandidateI.key = candidate;
-            newCandidateI.work_duration_in_seconds = std::numeric_limits<int64_t>::max();
+            newCandidateI.work_duration_in_seconds = std::numeric_limits<uint32_t>::max();
             newCandidateI.public_key = publicKey;
             newCandidateI.secret_hash = secretHash;
             newCandidateI.producer_type = producerType;
