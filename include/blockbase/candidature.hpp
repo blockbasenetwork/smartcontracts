@@ -107,9 +107,31 @@
     void blockbase::AddCandidatesWithReservedSeat(eosio::name owner) {
         candidatesIndex _candidates(_self, owner.value);
         reservedseatIndex _reservedseats(_self, owner.value);
+        infoIndex _infos(_self, owner.value);
+        auto info = _infos.find(owner.value);
+        auto numOfValidatorAdded = 0;
+        auto numOfHistoryAdded = 0;
+        auto numOfFullAdded = 0;
+        
         for (auto candidate : _candidates) {
             auto reservedSeat = _reservedseats.find(candidate.key.value);
             if (reservedSeat != _reservedseats.end()) {
+                if (candidate.producer_type == 1 && numOfValidatorAdded < info->number_of_validator_producers_required) {
+                    numOfValidatorAdded ++;
+                } else {
+                    continue;
+                }
+                if (candidate.producer_type == 2 && numOfHistoryAdded < info->number_of_history_producers_required) {
+                    numOfHistoryAdded ++;
+                } else {
+                    continue;
+                }
+                if (candidate.producer_type == 3 && numOfFullAdded < info->number_of_full_producers_required) {
+                    numOfFullAdded ++;
+                } else {
+                    continue;
+                }
+                
                 AddProducerDAM(owner, candidate);
                 AddPublicKeyDAM(owner, candidate.key, candidate.public_key);
                 RemoveCandidateDAM(owner, candidate.key);
