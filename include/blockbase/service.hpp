@@ -41,6 +41,7 @@ static bool IsStakeRecoverable(eosio::name contract, eosio::name owner, eosio::n
     auto candidateInTable = _candidates.find(producer.value);
     
     if (owner.value == producer.value){
+        if(state == _states.end()) return true;
         if(clientInTable == _clients.end()) return false;
 
         return (state -> is_production_phase == false && state -> is_ip_retrieving_phase == false && state -> is_ip_sending_phase == false 
