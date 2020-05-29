@@ -71,7 +71,7 @@ void blockbase::AddBlockDAM(eosio::name owner, eosio::name producer, blockbase::
     auto info = _infos.find(owner.value);
     auto currentProducer = _currentprods.find(CKEY.value);
     
-    _blockheaders.emplace(_self, [&](auto &newBlockI) {
+    _blockheaders.emplace(producer, [&](auto &newBlockI) {
         newBlockI.producer = block.producer;
         newBlockI.block_hash = block.block_hash;
         newBlockI.previous_block_hash = block.previous_block_hash;
