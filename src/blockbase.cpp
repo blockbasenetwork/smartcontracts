@@ -149,7 +149,7 @@
     auto numberOfProducersRequired = info->number_of_validator_producers_required + info->number_of_history_producers_required + info->number_of_full_producers_required;
 
     std::vector<struct blockbase::candidates> selectedCandidateList = RunCandidatesSelection(owner);
-    if (producersInSidechainCount + selectedCandidateList.size() < numberOfProducersRequired) {
+    if (producersInSidechainCount + selectedCandidateList.size() < ceil(numberOfProducersRequired * MIN_PRODUCERS_TO_PRODUCE_THRESHOLD)) {
         if (producersInSidechainCount < ceil((numberOfProducersRequired)*MIN_PRODUCERS_IN_CHAIN_THRESHOLD)) {
             ChangeContractStateDAM({owner, true, false, true, false, false, false, false});
             RemoveBlockCountDAM(owner);
@@ -201,7 +201,7 @@
             ChangeContractStateDAM({owner, true, false, true, false, false, false, false});
             eosio::print("Sidechain paused, Candidature time started again \n");
             return;
-        } else {
+        } else if (std::distance(_producers.begin(), _producers.end()) < ceil(numberOfProducersRequired * MIN_PRODUCERS_TO_PRODUCE_THRESHOLD)){
             ChangeContractStateDAM({owner, true, false, true, false, false, false, state->is_production_phase});
 
             eosio::print("Candidature time started again. \n");
