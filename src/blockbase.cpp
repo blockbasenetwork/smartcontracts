@@ -198,8 +198,8 @@
         auto numberOfProducersRequired = info->number_of_validator_producers_required + info->number_of_history_producers_required + info->number_of_full_producers_required;
 
         if (std::distance(_producers.begin(), _producers.end()) < ceil(numberOfProducersRequired * MIN_PRODUCERS_IN_CHAIN_THRESHOLD)) {
-            ChangeContractStateDAM({owner, true, false, false, false, false, false, false});
-            eosio::print("Configure chain again. \n");
+            ChangeContractStateDAM({owner, true, false, true, false, false, false, false});
+            eosio::print("Sidechain paused, Candidature time started again \n");
             return;
         } else {
             ChangeContractStateDAM({owner, true, false, true, false, false, false, state->is_production_phase});
@@ -473,13 +473,13 @@
 
     if (std::distance(_blockheaders.begin(), _blockheaders.end()) > 0) {
         if (blockToValidate->block_hash == blockHash && blockToValidate->is_verified == false && blockToValidate->is_latest_block == false) {
-            _blockheaders.modify(blockToValidate, _self, [&](auto &newBlockI) {
+            _blockheaders.modify(blockToValidate, same_payer, [&](auto &newBlockI) {
                 newBlockI.is_verified = true;
                 newBlockI.is_latest_block = true;
             });
             if (lastblock.size() > 0) {
                 auto blockToModify = _blockheaders.find(lastblock.back().sequence_number);
-                _blockheaders.modify(blockToModify, _self, [&](auto &newBlockI) {
+                _blockheaders.modify(blockToModify, same_payer, [&](auto &newBlockI) {
                     newBlockI.is_latest_block = false;
                 });
             }
