@@ -151,11 +151,11 @@
     std::vector<struct blockbase::candidates> selectedCandidateList = RunCandidatesSelection(owner);
     if (producersInSidechainCount + selectedCandidateList.size() < numberOfProducersRequired) {
         if (producersInSidechainCount < ceil((numberOfProducersRequired)*MIN_PRODUCERS_IN_CHAIN_THRESHOLD)) {
-            ChangeContractStateDAM({owner, true, false, false, false, false, false, false});
+            ChangeContractStateDAM({owner, true, false, true, false, false, false, false});
             RemoveBlockCountDAM(owner);
             RemoveIPsDAM(owner);
             RemoveProducersDAM(owner);
-            eosio::print("Not enough candidates, configure the chain again. \n");
+            eosio::print("Not enough candidates, starting candidature again \n");
         } else {
             ChangeContractStateDAM({owner, true, false, true, false, false, false, state->is_production_phase});
             eosio::print("Starting candidature time again... \n");
