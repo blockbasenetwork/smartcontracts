@@ -150,7 +150,7 @@
 
     std::vector<struct blockbase::candidates> selectedCandidateList = RunCandidatesSelection(owner);
     if (producersInSidechainCount + selectedCandidateList.size() < ceil(numberOfProducersRequired * MIN_PRODUCERS_TO_PRODUCE_THRESHOLD)) {
-        if (producersInSidechainCount < ceil((numberOfProducersRequired)*MIN_PRODUCERS_IN_CHAIN_THRESHOLD)) {
+        if (producersInSidechainCount + selectedCandidateList.size()< ceil((numberOfProducersRequired)*MIN_PRODUCERS_IN_CHAIN_THRESHOLD)) {
             ChangeContractStateDAM({owner, true, false, true, false, false, false, false});
             RemoveBlockCountDAM(owner);
             RemoveIPsDAM(owner);
