@@ -586,7 +586,7 @@
     producersIndex _producers(_self, owner.value);
     auto producerInTable = _producers.find(account.value);
     check(producerInTable != _producers.end(), "Producer is not in this sidechain" );
-    check(producerInTable -> work_duration_in_seconds == std::numeric_limits<uint32_t>::max(), "This producer is already submited a exit request");
+    check(producerInTable -> work_duration_in_seconds == std::numeric_limits<uint32_t>::max(), "This producer has already submitted an exit request");
     
     _producers.modify(producerInTable, account, [&](auto &producerI) {
         producerI.work_duration_in_seconds = eosio::current_block_time().to_time_point().sec_since_epoch() + 172800;
