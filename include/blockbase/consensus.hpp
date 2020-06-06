@@ -63,6 +63,7 @@ void blockbase::UpdateBlockCount(eosio::name owner, eosio::name producer) {
     auto info = _infos.find(owner.value);
     auto producerBlockCount = _blockscount.find(producer.value);
     if (std::distance(_blockheaders.begin(), _blockheaders.end()) > 0) {
+        //TODO rpinto - aren't we comparing objects here? won't this default always to false?
         if ( producer == eosio::name((--_blockheaders.end())->producer) && (--_blockheaders.end())->is_verified == true) {
             _blockscount.modify(producerBlockCount, owner, [&](auto &blockCountI) {
                 blockCountI.num_blocks_produced += 1;
@@ -95,8 +96,12 @@ blockbase::producers blockbase::GetNextProducer(eosio::name owner) {
     struct blockbase::producers lastProducer = _producers.get((readyProducers.back()).key.value);
     bool hasCurrentProducerFound = false;
     
+
+    
     if (readyProducers.size() > 1 && currentProducer != _currentprods.end()) {
         for (struct blockbase::producers producer : readyProducers) {
+
+            //TODO rpinto - review this code with me. I'm almost sure this doesn't work
             if (producer.key == currentProducer->producer) {
                 if (producer.key == lastProducer.key) {
                     nextProducer = firstProducer;

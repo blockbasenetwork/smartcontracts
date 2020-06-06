@@ -51,11 +51,19 @@ std::vector<struct blockbase::producers> blockbase::GetProducersWhoFailedToSendI
 
     auto info = _infos.find(owner.value);
     auto numberOfProducersRequired = info->number_of_validator_producers_required + info->number_of_history_producers_required + info->number_of_full_producers_required;
-    uint8_t numberOfRequiredIPs = CalculateNumberOfIPsRequired(numberOfProducersRequired);
+    
+    //TODO rpinto - this code was put here by copying it from the function CalculateNumberOfIPsRequired
+    //uint8_t numberOfRequiredIPs = CalculateNumberOfIPsRequired(numberOfProducersRequired);
+    //I don't understand the division with 4.0, this means that the number of required IPs doubles at every 4 aditional producers. Why?
+    //TODO has this function been tested with other values than 4.0?
+    uint8_t numberOfRequiredIPs = numberOfProducersRequired == 1 ? 0 : ceil(numberOfProducersRequired/4.0);
         
     std::vector<struct blockbase::producers> producersToRemove;
     for (auto producer : _producers) {
         auto ip = _ips.find(producer.key.value);
+
+        //TODO rpinto - what if the ip is null? shouldn't it be compared first to null: ip != _ips.End()
+        //can't the encrypted IPs be bigger than the numberOfRequiredIPs? Is the producer also removed then?
         if (ip -> encrypted_ips.size() != numberOfRequiredIPs + 1) {
             producersToRemove.push_back(producer);
             continue;
@@ -63,7 +71,7 @@ std::vector<struct blockbase::producers> blockbase::GetProducersWhoFailedToSendI
         for (auto encryptedip : ip -> encrypted_ips) {
             if (encryptedip == "") { //TODO: Check ip size
                 producersToRemove.push_back(producer);
-                continue;
+                continue; // shouldn't this be a break? not a continue? won't that add the producer more than one time to the list?
             }
         }
     }

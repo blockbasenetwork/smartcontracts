@@ -203,7 +203,10 @@ void blockbasetoken::addstake(const name& owner, const name& sidechain, const as
     sub_balance(owner, stake);
 }
 
+
 void blockbasetoken::sub_stake(const name& sidechain, const name& user, const asset& stake) {
+    //TODO rpinto - doesn't this require_auth(owner)?
+    
     ledgers sidechainledger(get_self(), user.value);
 
     check(is_account(sidechain), "sidechain is not an account");
