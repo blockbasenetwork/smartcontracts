@@ -78,7 +78,7 @@
             bool operator()(blockbase::candidates cand1, blockbase::candidates cand2) const{
                 eosio::asset cstake1 = blockbasetoken::get_stake(BLOCKBASE_TOKEN, sidechain, cand1.key);
                 eosio::asset cstake2 = blockbasetoken::get_stake(BLOCKBASE_TOKEN, sidechain, cand2.key);
-                return cstake1 <= cstake2;
+                return cstake1 < cstake2;
             }
             eosio::name sidechain;
         };
