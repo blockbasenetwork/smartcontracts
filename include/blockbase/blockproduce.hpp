@@ -1,10 +1,10 @@
 bool blockbase::HasBlockBeenProduced(eosio::name owner, eosio::name producer){
     currentprodIndex _currentprods(_self, owner.value);
     auto currentProducer = _currentprods.find(CKEY.value);
-    //TODO rpinto - really? so if has_produced_block == false then HasBlockBeenProduced returns true
-    return currentProducer != _currentprods.end() && currentProducer -> has_produced_block == false;
+    return currentProducer != _currentprods.end() && currentProducer -> has_produced_block == true;
 }
 
+//TODO Test this method
 bool blockbase::IsProducerTurn(eosio::name owner, eosio::name producer) {
     currentprodIndex _currentprods(_self, owner.value);
     infoIndex _infos (_self, owner.value);
@@ -18,10 +18,7 @@ bool blockbase::IsProducerTurn(eosio::name owner, eosio::name producer) {
     if (currentProducer == _currentprods.end() || producerInSidechain == _producers.end() || currentProducer -> producer != producer) return false;
     std::vector<blockbase::producers> readyProducersInSidechain = blockbase::GetReadyProducers(owner);
     if (std::distance(_blockheaders.begin(), _blockheaders.end()) > 0 && readyProducersInSidechain.size() >= 2 ) {	   
-        if ((--_blockheaders.end()) -> producer == producerInSidechain -> key.to_string() 
-            && //-- SHOULD THIS BE AN OR instead of and AND?
-            //TODO what does this check here do?
-            ((--_blockheaders.end()) -> timestamp + ((info -> block_time_in_seconds) * readyProducersInSidechain.size())) > eosio::current_block_time().to_time_point().sec_since_epoch()) return false;
+        if ((--_blockheaders.end()) -> producer == producerInSidechain -> key.to_string()) return false;
     }
     return true;
 }
@@ -51,7 +48,6 @@ bool blockbase::IsBlockValid(eosio::name owner, blockbase::blockheaders block) {
     return false;
 }
 
-//TODO rpinto - so, the GetLatestBlock returns a collection, why?
 std::vector<struct blockbase::blockheaders> blockbase::GetLatestBlock(eosio::name owner) {
     blockheadersIndex _blockheaders(_self, owner.value);
     std::vector<struct blockbase::blockheaders> blockHeaderListToReturn;
@@ -132,13 +128,11 @@ void blockbase::ReOpenCandidaturePhaseIfRequired(eosio::name owner){
             ChangeContractStateDAM({owner, true, false, true, false, false, false, false});
             eosio::print("  Number of producers in the sidechain is below the minimum threshold, production stopped and the candidature phase is starting... \n");
             SetEndDateDAM(owner, CANDIDATURE_TIME_ID);
-            //TODO rpinto - the second condition (&& producersInSidechainCount < numberOfProducersRequired) means that if the producers are equal to the number required this will fail the condition..
         } else if (producersInSidechainCount >= ceil(numberOfProducersRequired * MIN_PRODUCERS_IN_CHAIN_THRESHOLD) && producersInSidechainCount < numberOfProducersRequired) {
-            //why does it need to do all these checks?
             if(state -> is_candidature_phase == false && state -> is_secret_sending_phase == false && state -> is_ip_sending_phase == false && state -> is_ip_retrieving_phase == false) {
                 ChangeContractStateDAM({owner, true, false, true, false, false, false, true});
-                eosio::print("  Starting candidature time but production continues. \n");
                 SetEndDateDAM(owner, CANDIDATURE_TIME_ID);
+                eosio::print("  Starting candidature time but production continues. \n");
             }
         }
     }

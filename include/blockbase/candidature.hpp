@@ -37,14 +37,6 @@
         return (_producers.find(producer.value) == _producers.end()) && (_candidates.find(producer.value) == _candidates.end()) && (_blacklists.find(producer.value) == _blacklists.end());
     }
 
-    //TODO rpinto - the naming of this method doesn't relate at all to what it does
-    //I removed it's usage from the code, it wasn't necessary. This function should be deleted
-    uint8_t blockbase::CalculateNumberOfIPsRequired(float numberOfProducers) {
-        if(numberOfProducers == 1) return 0;
-        //TODO rpinto - why doesn't this use the CONSTANT?
-        return ceil(numberOfProducers/4.0);
-    }
-
     std::vector<struct blockbase::candidates> blockbase::RunCandidatesSelection(eosio::name owner) {
         std::vector<struct blockbase::candidates> candidateSelection;
         for (int i = 1; i < 4; i++) {
@@ -112,53 +104,31 @@
         reservedseatIndex _reservedseats(_self, owner.value);
         infoIndex _infos(_self, owner.value);
         auto info = _infos.find(owner.value);
-        // auto num<OfValidatorAdded = 0;
-        // auto numOfHistoryAdded = 0;
-        // auto numOfFullAdded = 0;
-        
-        for (auto candidate . _candidates) {
+        auto numOfValidatorAdded = 0;
+        auto numOfHistoryAdded = 0;
+        auto numOfFullAdded = 0;
+
+        for (auto candidate : _candidates) {
             auto reservedSeat = _reservedseats.find(candidate.key.value);
             if (reservedSeat != _reservedseats.end()) {
-                if (
-                candidate.producer_type == 1 
-                && numOfValidatorAdded < info->number_of_validator_producers_required
-                || candidate.producer_type == 2 
-                && numOfHistoryAdded < info->number_of_history_producers_required
-                || candidate.producer_type == 3 
-                && numOfFullAdded < info->number_of_full_producers_required) 
-                {
-                    AddProducerDAM(owner, candidate);
+                if (candidate.producer_type == 1) {
+                    if(numOfValidatorAdded >= info->number_of_validator_producers_required) continue;
+                    numOfValidatorAdded ++;
+                }
+                if (candidate.producer_type == 2) {
+                    if(numOfHistoryAdded >= info->number_of_history_producers_required) continue;
+                    numOfHistoryAdded ++;
+                }
+                if (candidate.producer_type == 3) {
+                    if(numOfFullAdded >= info->number_of_full_producers_required) continue;
+                    numOfFullAdded ++;
+                }
+                
+                AddProducerDAM(owner, candidate);
                 AddPublicKeyDAM(owner, candidate.key, candidate.public_key);
                 RemoveCandidateDAM(owner, candidate.key);
-                }
-            }
+            }   
         }
-
-        //TODO rpinto - this code was completely wrong...
-        // for (auto candidate : _candidates) {
-        //     auto reservedSeat = _reservedseats.find(candidate.key.value);
-        //     if (reservedSeat != _reservedseats.end()) {
-        //         if (candidate.producer_type == 1 && numOfValidatorAdded < info->number_of_validator_producers_required) {
-        //             numOfValidatorAdded ++;
-        //         } else {
-        //             continue;
-        //         }
-        //         if (candidate.producer_type == 2 && numOfHistoryAdded < info->number_of_history_producers_required) {
-        //             numOfHistoryAdded ++;
-        //         } else {
-        //             continue;
-        //         }
-        //         if (candidate.producer_type == 3 && numOfFullAdded < info->number_of_full_producers_required) {
-        //             numOfFullAdded ++;
-        //         } else {
-        //             continue;
-        //         }
-                
-        //         AddProducerDAM(owner, candidate);
-        //         AddPublicKeyDAM(owner, candidate.key, candidate.public_key);
-        //         RemoveCandidateDAM(owner, candidate.key);
-        //     }   
-        // }
     }
 
     void blockbase::AddCandidateDAM(eosio::name owner, eosio::name candidate, std::string &publicKey, checksum256 secretHash, uint8_t producerType) {
