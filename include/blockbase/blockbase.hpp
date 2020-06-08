@@ -80,6 +80,7 @@ class[[eosio::contract]] blockbase : public eosio::contract {
         std::string producer;
         std::string block_hash;
         std::string previous_block_hash;
+        uint64_t previous_sequence_number;
         uint64_t sequence_number;
         uint64_t timestamp;
         uint64_t transactions_count;

@@ -38,12 +38,12 @@ bool blockbase::IsBlockValid(eosio::name owner, blockbase::blockheaders block) {
 
     if(lastestBlockList.size() > 0 && blockHeadersTableSize <= 0) {
         auto lastblock = lastestBlockList.back();
-        if(lastblock.sequence_number + 1 == block.sequence_number && lastblock.block_hash == block.previous_block_hash) return true;
+        if(lastblock.sequence_number + 1 == block.sequence_number && lastblock.block_hash == block.previous_block_hash && lastblock.sequence_number == block.previous_sequence_number) return true;
     }
 
     if(blockHeadersTableSize > 0){
         auto blockHeader = --_blockheaders.end();
-        if(blockHeader -> sequence_number + 1 == block.sequence_number && blockHeader -> block_hash == block.previous_block_hash) return true;
+        if(blockHeader -> sequence_number + 1 == block.sequence_number && blockHeader -> block_hash == block.previous_block_hash && blockHeader -> sequence_number == block.previous_sequence_number) return true;
     }
     return false;
 }
@@ -75,6 +75,7 @@ void blockbase::AddBlockDAM(eosio::name owner, eosio::name producer, blockbase::
         newBlockI.producer = block.producer;
         newBlockI.block_hash = block.block_hash;
         newBlockI.previous_block_hash = block.previous_block_hash;
+        newBlockI.previous_sequence_number = block.previous_sequence_number;
         newBlockI.sequence_number = block.sequence_number;
         newBlockI.timestamp = block.timestamp;
         newBlockI.transactions_count = block.transactions_count;
