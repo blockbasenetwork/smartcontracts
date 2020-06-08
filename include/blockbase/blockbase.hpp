@@ -191,7 +191,6 @@ class[[eosio::contract]] blockbase : public eosio::contract {
         eosio::name key;
         uint64_t sequence_number;
         uint64_t byte_index;
-        std::string byte;
         std::vector<std::string> verify_signature;
         std::vector<char> packed_transaction;
         std::string block_byte_in_hex;
