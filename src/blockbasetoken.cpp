@@ -204,6 +204,7 @@ void blockbasetoken::addstake(const name& owner, const name& sidechain, const as
 }
 
 void blockbasetoken::sub_stake(const name& sidechain, const name& user, const asset& stake) {
+    
     ledgers sidechainledger(get_self(), user.value);
 
     check(is_account(sidechain), "sidechain is not an account");

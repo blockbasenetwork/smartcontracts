@@ -1,9 +1,10 @@
 bool blockbase::HasBlockBeenProduced(eosio::name owner, eosio::name producer){
     currentprodIndex _currentprods(_self, owner.value);
     auto currentProducer = _currentprods.find(CKEY.value);
-    return currentProducer != _currentprods.end() && currentProducer -> has_produced_block == false;
+    return currentProducer != _currentprods.end() && currentProducer -> has_produced_block == true;
 }
 
+//TODO Test this method
 bool blockbase::IsProducerTurn(eosio::name owner, eosio::name producer) {
     currentprodIndex _currentprods(_self, owner.value);
     infoIndex _infos (_self, owner.value);
@@ -17,8 +18,7 @@ bool blockbase::IsProducerTurn(eosio::name owner, eosio::name producer) {
     if (currentProducer == _currentprods.end() || producerInSidechain == _producers.end() || currentProducer -> producer != producer) return false;
     std::vector<blockbase::producers> readyProducersInSidechain = blockbase::GetReadyProducers(owner);
     if (std::distance(_blockheaders.begin(), _blockheaders.end()) > 0 && readyProducersInSidechain.size() >= 2 ) {	   
-        if ((--_blockheaders.end()) -> producer == producerInSidechain -> key.to_string() &&
-            ((--_blockheaders.end()) -> timestamp + ((info -> block_time_in_seconds) * readyProducersInSidechain.size())) > eosio::current_block_time().to_time_point().sec_since_epoch()) return false;
+        if ((--_blockheaders.end()) -> producer == producerInSidechain -> key.to_string()) return false;
     }
     return true;
 }
@@ -126,13 +126,13 @@ void blockbase::ReOpenCandidaturePhaseIfRequired(eosio::name owner){
     if (producersInSidechainCount < numberOfProducersRequired) {
         if (producersInSidechainCount < ceil(numberOfProducersRequired * MIN_PRODUCERS_IN_CHAIN_THRESHOLD)) {
             ChangeContractStateDAM({owner, true, false, true, false, false, false, false});
-            eosio::print("  Number of producers on the pool is below threshold, mining stoped and candidature time starting... \n");
+            eosio::print("  Number of producers in the sidechain is below the minimum threshold, production stopped and the candidature phase is starting... \n");
             SetEndDateDAM(owner, CANDIDATURE_TIME_ID);
         } else if (producersInSidechainCount >= ceil(numberOfProducersRequired * MIN_PRODUCERS_IN_CHAIN_THRESHOLD) && producersInSidechainCount < numberOfProducersRequired) {
             if(state -> is_candidature_phase == false && state -> is_secret_sending_phase == false && state -> is_ip_sending_phase == false && state -> is_ip_retrieving_phase == false) {
                 ChangeContractStateDAM({owner, true, false, true, false, false, false, true});
-                eosio::print("  Starting candidature time but mining continues. \n");
                 SetEndDateDAM(owner, CANDIDATURE_TIME_ID);
+                eosio::print("  Starting candidature time but production continues. \n");
             }
         }
     }

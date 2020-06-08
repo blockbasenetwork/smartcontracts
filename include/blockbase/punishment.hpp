@@ -51,11 +51,13 @@ std::vector<struct blockbase::producers> blockbase::GetProducersWhoFailedToSendI
 
     auto info = _infos.find(owner.value);
     auto numberOfProducersRequired = info->number_of_validator_producers_required + info->number_of_history_producers_required + info->number_of_full_producers_required;
-    uint8_t numberOfRequiredIPs = CalculateNumberOfIPsRequired(numberOfProducersRequired);
+    
+    uint8_t numberOfRequiredIPs = numberOfProducersRequired == 1 ? 0 : ceil(numberOfProducersRequired/4.0);
         
     std::vector<struct blockbase::producers> producersToRemove;
     for (auto producer : _producers) {
-        auto ip = _ips.find(producer.key.value);
+        auto ip = _ips.find(producer.key.value); 
+        //TODO can't the encrypted IPs be bigger than the numberOfRequiredIPs? Is the producer also removed then?
         if (ip -> encrypted_ips.size() != numberOfRequiredIPs + 1) {
             producersToRemove.push_back(producer);
             continue;
@@ -63,7 +65,7 @@ std::vector<struct blockbase::producers> blockbase::GetProducersWhoFailedToSendI
         for (auto encryptedip : ip -> encrypted_ips) {
             if (encryptedip == "") { //TODO: Check ip size
                 producersToRemove.push_back(producer);
-                continue;
+                break;
             }
         }
     }

@@ -37,11 +37,6 @@
         return (_producers.find(producer.value) == _producers.end()) && (_candidates.find(producer.value) == _candidates.end()) && (_blacklists.find(producer.value) == _blacklists.end());
     }
 
-    uint8_t blockbase::CalculateNumberOfIPsRequired(float numberOfProducers) {
-        if(numberOfProducers == 1) return 0;
-        return ceil(numberOfProducers/4.0);
-    }
-
     std::vector<struct blockbase::candidates> blockbase::RunCandidatesSelection(eosio::name owner) {
         std::vector<struct blockbase::candidates> candidateSelection;
         for (int i = 1; i < 4; i++) {
@@ -112,24 +107,21 @@
         auto numOfValidatorAdded = 0;
         auto numOfHistoryAdded = 0;
         auto numOfFullAdded = 0;
-        
+
         for (auto candidate : _candidates) {
             auto reservedSeat = _reservedseats.find(candidate.key.value);
             if (reservedSeat != _reservedseats.end()) {
-                if (candidate.producer_type == 1 && numOfValidatorAdded < info->number_of_validator_producers_required) {
+                if (candidate.producer_type == 1) {
+                    if(numOfValidatorAdded >= info->number_of_validator_producers_required) continue;
                     numOfValidatorAdded ++;
-                } else {
-                    continue;
                 }
-                if (candidate.producer_type == 2 && numOfHistoryAdded < info->number_of_history_producers_required) {
+                if (candidate.producer_type == 2) {
+                    if(numOfHistoryAdded >= info->number_of_history_producers_required) continue;
                     numOfHistoryAdded ++;
-                } else {
-                    continue;
                 }
-                if (candidate.producer_type == 3 && numOfFullAdded < info->number_of_full_producers_required) {
+                if (candidate.producer_type == 3) {
+                    if(numOfFullAdded >= info->number_of_full_producers_required) continue;
                     numOfFullAdded ++;
-                } else {
-                    continue;
                 }
                 
                 AddProducerDAM(owner, candidate);

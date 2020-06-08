@@ -63,7 +63,7 @@ void blockbase::UpdateBlockCount(eosio::name owner, eosio::name producer) {
     auto info = _infos.find(owner.value);
     auto producerBlockCount = _blockscount.find(producer.value);
     if (std::distance(_blockheaders.begin(), _blockheaders.end()) > 0) {
-        if ( producer == eosio::name((--_blockheaders.end())->producer) && (--_blockheaders.end())->is_verified == true) {
+        if (producer == eosio::name((--_blockheaders.end())->producer) && (--_blockheaders.end())->is_verified == true) {
             _blockscount.modify(producerBlockCount, owner, [&](auto &blockCountI) {
                 blockCountI.num_blocks_produced += 1;
             });
@@ -85,6 +85,7 @@ void blockbase::UpdateBlockCount(eosio::name owner, eosio::name producer) {
     }
 }
 
+//TODO Test this method
 blockbase::producers blockbase::GetNextProducer(eosio::name owner) {
     currentprodIndex _currentprods(_self, owner.value);
     producersIndex _producers(_self, owner.value);
@@ -93,23 +94,22 @@ blockbase::producers blockbase::GetNextProducer(eosio::name owner) {
     struct blockbase::producers nextProducer;
     struct blockbase::producers firstProducer = _producers.get((readyProducers.front()).key.value);
     struct blockbase::producers lastProducer = _producers.get((readyProducers.back()).key.value);
-    bool hasCurrentProducerFound = false;
-    
+ 
     if (readyProducers.size() > 1 && currentProducer != _currentprods.end()) {
+        auto counter = 0;
+        
         for (struct blockbase::producers producer : readyProducers) {
             if (producer.key == currentProducer->producer) {
                 if (producer.key == lastProducer.key) {
                     nextProducer = firstProducer;
-                    break;
+                    return nextProducer;
                 } else if (producer.key != lastProducer.key) {
-                    hasCurrentProducerFound = true;
+                    nextProducer = readyProducers[counter + 1];
+                    return nextProducer;
                 }
-            } else if (hasCurrentProducerFound) {
-                nextProducer = producer;
-                break;
             }
+            counter++;
         }
-        return nextProducer;
     }
     return firstProducer;
 }
