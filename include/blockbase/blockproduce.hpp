@@ -23,17 +23,29 @@ bool blockbase::IsProducerTurn(eosio::name owner, eosio::name producer) {
     return true;
 }
 
-//TODO: Check timestamp validation
-bool blockbase::IsBlockValid(eosio::name owner, blockbase::blockheaders block) {
+bool blockbase::IsTimestampValid(eosio::name owner, blockbase::blockheaders block) {
     infoIndex _infos (_self, owner.value);
-    blockheadersIndex _blockheaders(_self, owner.value);
-    uint64_t blockHeadersTableSize = std::distance(_blockheaders.begin(), _blockheaders.end());
     auto info = _infos.find(owner.value);
 
+    if(block.timestamp < eosio::current_block_time().to_time_point().sec_since_epoch() - (3*info->block_time_in_seconds) || block.timestamp > eosio::current_block_time().to_time_point().sec_since_epoch()) return false;
+
+    return true;
+}
+
+bool blockbase::IsBlockSizeValid(eosio::name owner, blockbase::blockheaders block) {
+    infoIndex _infos (_self, owner.value);
+    auto info = _infos.find(owner.value);
+
+    if(block.block_size_in_bytes > info -> block_size_in_bytes) return false;
+    
+    return true;
+}
+
+bool blockbase::IsPreviousBlockHashAndSequenceNumberValid(eosio::name owner, blockbase::blockheaders block) {
+    blockheadersIndex _blockheaders(_self, owner.value);
+    uint64_t blockHeadersTableSize = std::distance(_blockheaders.begin(), _blockheaders.end());
     std::vector<struct blockbase::blockheaders> lastestBlockList = GetLatestBlock(owner);
 
-    if(block.timestamp < eosio::current_block_time().to_time_point().sec_since_epoch() - (3*info->block_time_in_seconds) || block.timestamp > eosio::current_block_time().to_time_point().sec_since_epoch()) return false;
-    if(block.block_size_in_bytes > info -> block_size_in_bytes) return false;
     if(lastestBlockList.size() == 0 && blockHeadersTableSize == 0 && block.sequence_number == 1) return true;
 
     if(lastestBlockList.size() > 0 && blockHeadersTableSize <= 0) {
@@ -75,6 +87,7 @@ void blockbase::AddBlockDAM(eosio::name owner, eosio::name producer, blockbase::
         newBlockI.producer = block.producer;
         newBlockI.block_hash = block.block_hash;
         newBlockI.previous_block_hash = block.previous_block_hash;
+        newBlockI.last_trx_sequence_number = block.last_trx_sequence_number;
         newBlockI.sequence_number = block.sequence_number;
         newBlockI.timestamp = block.timestamp;
         newBlockI.transactions_count = block.transactions_count;

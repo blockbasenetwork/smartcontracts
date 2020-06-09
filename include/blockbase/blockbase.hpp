@@ -80,6 +80,7 @@ class[[eosio::contract]] blockbase : public eosio::contract {
         std::string producer;
         std::string block_hash;
         std::string previous_block_hash;
+        uint64_t last_trx_sequence_number;
         uint64_t sequence_number;
         uint64_t timestamp;
         uint64_t transactions_count;
@@ -189,6 +190,8 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     struct [[eosio::table]] histval {
         eosio::name key;
         std::string block_hash;
+        std::vector<std::string> verify_signatures;
+        std::vector<char> packed_transaction;
         std::string block_byte_in_hex;
         uint64_t primary_key() const { return key.value; }
     };
@@ -254,7 +257,9 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     bool IsConfigurationValid(blockbase::contractinfo info);
     bool IsCandidateValid(eosio::name owner, eosio::name producer);
     bool IsCandidaturePhase(eosio::name owner);
-    bool IsBlockValid(eosio::name owner, blockheaders block);
+    bool IsTimestampValid(eosio::name owner, blockheaders block);
+    bool IsBlockSizeValid(eosio::name owner, blockheaders block);
+    bool IsPreviousBlockHashAndSequenceNumberValid(eosio::name owner, blockheaders block);
     bool IsProducerTurn(eosio::name owner, eosio::name producer);
     void RunSettlement(eosio::name owner);
     void RemoveBadProducers(eosio::name owner);
