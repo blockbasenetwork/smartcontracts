@@ -189,9 +189,8 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     // History Validation
     struct [[eosio::table]] histval {
         eosio::name key;
-        uint64_t sequence_number;
-        uint64_t byte_index;
-        std::vector<std::string> verify_signature;
+        std::string block_hash;
+        std::vector<std::string> verify_signatures;
         std::vector<char> packed_transaction;
         std::string block_byte_in_hex;
         uint64_t primary_key() const { return key.value; }
