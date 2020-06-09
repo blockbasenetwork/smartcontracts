@@ -341,7 +341,9 @@
     check(state != _states.end() && state->has_chain_started == true && state->is_production_phase == true, "The chain is not in the production phase, please check the current state of the chain.");
     check(producerInSidechain != _producers.end(), "Producer not in pool.");
     check(IsProducerTurn(owner, producer), "It's not this producer turn to produce a block.");
-    check(IsBlockValid(owner, block), "Invalid Block.");
+    check(IsTimestampValid(owner, block), "Invalid timestamp in block header.");
+    check(IsBlockSizeValid(owner, block), "Invalid block size in block header.");
+    check(IsPreviousBlockHashAndSequenceNumberValid(owner, block), "Invalid previous blockhash or sequence number in block header.");
     check(!HasBlockBeenProduced(owner, producer), "You already produced in this time slot, wait for your turn.");
     AddBlockDAM(owner, producer, block);
     eosio::print("Block submited with success.");
