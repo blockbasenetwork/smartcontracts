@@ -257,7 +257,9 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     bool IsConfigurationValid(blockbase::contractinfo info);
     bool IsCandidateValid(eosio::name owner, eosio::name producer);
     bool IsCandidaturePhase(eosio::name owner);
-    bool IsBlockValid(eosio::name owner, blockheaders block);
+    bool IsTimestampValid(eosio::name owner, blockheaders block);
+    bool IsBlockSizeValid(eosio::name owner, blockheaders block);
+    bool IsPreviousBlockHashAndSequenceNumberValid(eosio::name owner, blockheaders block);
     bool IsProducerTurn(eosio::name owner, eosio::name producer);
     void RunSettlement(eosio::name owner);
     void RemoveBadProducers(eosio::name owner);
