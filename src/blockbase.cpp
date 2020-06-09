@@ -40,7 +40,7 @@
     eosio::print("Chain started. You can now insert your configurations. \n");
 }
 
-[[eosio::action]] void blockbase::configchain(eosio::name owner, blockbase::contractinfo infoJson, std::vector<eosio::name> reservedSeats) {
+[[eosio::action]] void blockbase::configchain(eosio::name owner, blockbase::contractinfo infoJson, std::vector<eosio::name> reservedSeats, uint32_t softwareVersion) {
     require_auth(owner);
 
     stateIndex _states(_self, owner.value);
@@ -54,12 +54,14 @@
     check(state != _states.end() && state->has_chain_started == true, "This sidechain hasnt't been created yet, please create it first.");
     check(state->is_production_phase == false, "The sidechain is already in production.");
     check(IsConfigurationValid(infoJson), "The configuration inserted is incorrect or not valid, please insert it again.");
+    check(softwareVersion >= 100, "The version inserted is not valid"); // The 100 is to represent the version 1.0.0
     eosio::asset ownerStake = blockbasetoken::get_stake(BLOCKBASE_TOKEN, owner, owner);
     check(ownerStake.amount > MIN_REQUESTER_STAKE, "No stake inserted or the amount is not valid. Please insert your stake and configure the chain again.");
     check(reservedSeats.size() <= numberOfProducersRequired, "Number of reserved seats is bigger than the number of producers requested");
 
     ChangeContractStateDAM({owner, true, true, false, false, false, false, false});
     UpdateContractInfoDAM(owner, infoJson);
+    SoftwareVersionDAM(owner, softwareVersion);
     
     //TODO rpinto - why does it do a cleaning here? And why to these tables only?
     //reserved seats here instead if else.
@@ -134,8 +136,6 @@
         SetEndDateDAM(owner, SECRET_TIME_ID);
         eosio::print("Start Secret send time. \n");
     }
-
-    
 }
 
 [[eosio::action]] void blockbase::startsendtime(eosio::name owner) {
@@ -259,7 +259,7 @@
 #pragma endregion
 #pragma region User Actions
 
-[[eosio::action]] void blockbase::addcandidate(eosio::name owner, eosio::name candidate, std::string &publicKey, checksum256 secretHash, uint8_t producerType) {
+[[eosio::action]] void blockbase::addcandidate(eosio::name owner, eosio::name candidate, std::string &publicKey, checksum256 secretHash, uint8_t producerType, uint32_t softwareVersion) {
     require_auth(candidate);
 
     stateIndex _states(_self, owner.value);
@@ -275,6 +275,7 @@
     check(state != _states.end() && state->has_chain_started == true && state->is_candidature_phase == true, "The chain is not in the candidature phase, please check the current state of the chain.");
     check(IsCandidateValid(owner, candidate), "Candidate is already a candidate, a producer, or is banned");
     check(IsPublicKeyValid(publicKey), "Incorrect format in public key, try inserting again. \n");
+    check(IsVersionValid(owner, softwareVersion), "The software version in use is not supported by this sidechain. Candidature failed");
     eosio::asset candidateStake = blockbasetoken::get_stake(BLOCKBASE_TOKEN, owner, candidate);
     check(candidateStake.amount > 0, "No stake inserted in the sidechain. Please insert a stake first.\n");
 

@@ -216,14 +216,22 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     };
     typedef eosio::multi_index<eosio::name("verifysig"), verifysig> verifysigIndex;
 
+    // Version Table
+    struct [[eosio::table]] version {
+        eosio::name key;
+        uint32_t software_version;
+        uint64_t primary_key() const { return key.value; }
+    };
+    typedef eosio::multi_index<eosio::name("version"), version> versionIndex;
+
     [[eosio::action]] void startchain(eosio::name owner, std::string publicKey);
-    [[eosio::action]] void configchain(eosio::name owner, blockbase::contractinfo infoJson, std::vector<eosio::name> reservedSeats);
+    [[eosio::action]] void configchain(eosio::name owner, blockbase::contractinfo infoJson, std::vector<eosio::name> reservedSeats, uint32_t softwareVersion);
     [[eosio::action]] void startcandtime(eosio::name owner);
     [[eosio::action]] void secrettime(eosio::name owner);
     [[eosio::action]] void startsendtime(eosio::name owner);
     [[eosio::action]] void startrectime(eosio::name owner);
     [[eosio::action]] void startprodtime(eosio::name owner);
-    [[eosio::action]] void addcandidate(eosio::name owner, eosio::name candidate, std::string & publicKey, checksum256 secretHash, uint8_t producerType);
+    [[eosio::action]] void addcandidate(eosio::name owner, eosio::name candidate, std::string & publicKey, checksum256 secretHash, uint8_t producerType, uint32_t softwareVersion);
     [[eosio::action]] void addsecret(eosio::name owner, eosio::name producer, checksum256 secret);
     [[eosio::action]] void rcandidate(eosio::name owner, eosio::name name);
     [[eosio::action]] void addencryptip(eosio::name owner, eosio::name name, std::vector<std::string> encryptedIps);
@@ -259,6 +267,7 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     bool IsCandidaturePhase(eosio::name owner);
     bool IsBlockValid(eosio::name owner, blockheaders block);
     bool IsProducerTurn(eosio::name owner, eosio::name producer);
+    bool IsVersionValid(eosio::name owner, uint32_t softwareVersion);
     void RunSettlement(eosio::name owner);
     void RemoveBadProducers(eosio::name owner);
     void EvaluateProducer(eosio::name owner, eosio::name producer, uint16_t failedBlocks, uint16_t producedBlocks);
@@ -285,6 +294,7 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     void ReOpenCandidaturePhaseIfRequired(eosio::name owner);
     void ChangeContractStateDAM(struct blockbase::contractst states);
     void RemoveCandidateDAM(eosio::name owner, eosio::name candidate);
+    void SoftwareVersionDAM(eosio::name owner, uint32_t softwareVersion);
     uint8_t CalculateNumberOfIPsRequired(float numberOfProducers);
     uint8_t CalculateMultiSigThreshold(uint8_t producersNumber);
     uint64_t CalculateRewardBasedOnBlockSize(eosio::name owner, struct blockbase::producers producer);
