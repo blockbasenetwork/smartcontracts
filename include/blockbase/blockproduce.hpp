@@ -17,16 +17,18 @@ bool blockbase::IsProducerTurn(eosio::name owner, eosio::name producer) {
 
     if (currentProducer == _currentprods.end() || producerInSidechain == _producers.end() || currentProducer -> producer != producer) return false;
     std::vector<blockbase::producers> readyProducersInSidechain = blockbase::GetReadyProducers(owner);
-    if (std::distance(_blockheaders.begin(), _blockheaders.end()) > 0 && readyProducersInSidechain.size() >= 2 ) {	   
-        if ((--_blockheaders.end()) -> producer == producerInSidechain -> key.to_string()) return false;
-    }
+
     return true;
 }
 
 bool blockbase::IsTimestampValid(eosio::name owner, blockbase::blockheaders block) {
     infoIndex _infos (_self, owner.value);
-    auto info = _infos.find(owner.value);
+    currentprodIndex _currentprods(_self, owner.value);
 
+    auto info = _infos.find(owner.value);
+    auto currentProducer = _currentprods.find(CKEY.value);
+
+    if(currentProducer -> production_start_date_in_seconds > block.timestamp) return false;
     if(block.timestamp < eosio::current_block_time().to_time_point().sec_since_epoch() - (3*info->block_time_in_seconds) || block.timestamp > eosio::current_block_time().to_time_point().sec_since_epoch()) return false;
 
     return true;
