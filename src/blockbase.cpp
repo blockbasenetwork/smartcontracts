@@ -54,7 +54,7 @@
     check(state != _states.end() && state->has_chain_started == true, "This sidechain hasnt't been created yet, please create it first.");
     check(state->is_production_phase == false, "The sidechain is already in production.");
     check(IsConfigurationValid(infoJson), "The configuration inserted is incorrect or not valid, please insert it again.");
-    check(softwareVersion >= 100, "The version inserted is not valid"); // The 100 is to represent the version 1.0.0
+    check(softwareVersion >= 1, "The version inserted is not valid"); // 1 represents the lowest software version 0.0.1
     eosio::asset ownerStake = blockbasetoken::get_stake(BLOCKBASE_TOKEN, owner, owner);
     check(ownerStake.amount > MIN_REQUESTER_STAKE, "No stake inserted or the amount is not valid. Please insert your stake and configure the chain again.");
     check(reservedSeats.size() <= numberOfProducersRequired, "Number of reserved seats is bigger than the number of producers requested");
@@ -637,6 +637,7 @@
     blockheadersIndex _blockheaders(_self, owner.value);
     histvalIndex _histval(_self, owner.value);
     verifysigIndex _verifysig(_self, owner.value);
+    versionIndex _version(_self, owner.value);
 
     RemoveProducersDAM(owner);
     RemoveIPsDAM(owner);
@@ -681,6 +682,10 @@
     auto itr9 = _verifysig.begin();
     while (itr9 != _verifysig.end())
         itr9 = _verifysig.erase(itr9);
+
+    auto itr10 = _version.begin();
+    while (itr10 != _version.end())
+        itr10 = _version.erase(itr10);
 
     eosio::print("Service Ended. \n");
 }
