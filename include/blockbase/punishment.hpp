@@ -50,9 +50,9 @@ std::vector<struct blockbase::producers> blockbase::GetProducersWhoFailedToSendI
     producersIndex _producers(_self, owner.value);
 
     auto info = _infos.find(owner.value);
-    auto numberOfProducersRequired = info->number_of_validator_producers_required + info->number_of_history_producers_required + info->number_of_full_producers_required;
+    auto numberOfProducersInChain = std::distance(_producers.begin(), _producers.end());
     
-    uint8_t numberOfRequiredIPs = numberOfProducersRequired == 1 ? 0 : ceil(numberOfProducersRequired/4.0);
+    uint8_t numberOfRequiredIPs = numberOfProducersInChain == 1 ? 0 : ceil(numberOfProducersInChain/4.0);
         
     std::vector<struct blockbase::producers> producersToRemove;
     for (auto producer : _producers) {
