@@ -37,6 +37,12 @@
         return (_producers.find(producer.value) == _producers.end()) && (_candidates.find(producer.value) == _candidates.end()) && (_blacklists.find(producer.value) == _blacklists.end());
     }
 
+    bool blockbase::IsVersionValid(eosio::name owner, uint32_t softwareVersion) {
+        versionIndex _version(_self, owner.value);
+        auto versionTable = _version.find(owner.value);
+        return softwareVersion >= versionTable -> software_version;
+    }
+
     std::vector<struct blockbase::candidates> blockbase::RunCandidatesSelection(eosio::name owner) {
         std::vector<struct blockbase::candidates> candidateSelection;
         for (int i = 1; i < 4; i++) {
@@ -193,6 +199,17 @@
             newInfoI.num_blocks_between_settlements = informationJson.num_blocks_between_settlements;
             newInfoI.block_size_in_bytes = informationJson.block_size_in_bytes;
         });
+    }
+
+    void blockbase::SoftwareVersionDAM(eosio::name owner, uint32_t softwareVersion) {
+        versionIndex _version(_self, owner.value);
+        auto versionRecord = _version.find(owner.value);
+        if(versionRecord == _version.end()){
+            _version.emplace(owner, [&](auto &versionI) {
+                versionI.key = owner;
+                versionI.software_version = softwareVersion;
+            });
+        }
     }
 
     void blockbase::SetEndDateDAM(eosio::name owner, uint8_t type) {
