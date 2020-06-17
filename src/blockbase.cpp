@@ -29,7 +29,7 @@
 
     check(client == _clients.end(), "Client information already inserted, the chain has started.");
     check(state == _states.end(), "Chain status are already created.");
-    check(IsPublicKeyValid(publicKey), "Public key is invalid, please insert a correct public key.");
+    check(IsPublicKeyValid(owner, publicKey), "Public key is invalid, please insert a correct public key.");
 
     ChangeContractStateDAM({owner, true, false, false, false, false, false, false});
 
@@ -274,7 +274,7 @@
 
     check(state != _states.end() && state->has_chain_started == true && state->is_candidature_phase == true, "The chain is not in the candidature phase, please check the current state of the chain.");
     check(IsCandidateValid(owner, candidate), "Candidate is already a candidate, a producer, or is banned");
-    check(IsPublicKeyValid(publicKey), "Incorrect format in public key, try inserting again. \n");
+    check(IsPublicKeyValid(owner, publicKey), "Public key not unique in sidechain or in incorrect format. \n");
     check(IsVersionValid(owner, softwareVersion), "The software version in use is not supported by this sidechain. Candidature failed");
     eosio::asset candidateStake = blockbasetoken::get_stake(BLOCKBASE_TOKEN, owner, candidate);
     check(candidateStake.amount > 0, "No stake inserted in the sidechain. Please insert a stake first.\n");
