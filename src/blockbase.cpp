@@ -123,9 +123,12 @@
     check(eosio::current_block_time().to_time_point().sec_since_epoch() >= info->candidature_phase_end_date_in_seconds && info->candidature_phase_end_date_in_seconds != 0, "The candidature phase hasn't finished yet, please check the contract information for more details.");
 
     auto numberOfProducersRequired = info->number_of_validator_producers_required + info->number_of_history_producers_required + info->number_of_full_producers_required;
-    auto producersAndCandidatesInSidechainCount = std::distance(_producers.begin(), _producers.end()) + std::distance(_candidates.begin(), _candidates.end());
+    auto numberOfCandidates = std::distance(_candidates.begin(), _candidates.end());
+    auto numberOfProducersInChain = std::distance(_producers.begin(), _producers.end());
     
-    if (producersAndCandidatesInSidechainCount < ceil(numberOfProducersRequired * MIN_PRODUCERS_TO_PRODUCE_THRESHOLD)) {
+    auto producersAndCandidatesInSidechainCount = numberOfCandidates + numberOfProducersInChain;
+    
+    if (numberOfCandidates == 0 || producersAndCandidatesInSidechainCount < ceil(numberOfProducersRequired * MIN_PRODUCERS_TO_PRODUCE_THRESHOLD)) {
         eosio::print("Starting candidature phase again... \n");
         SetEndDateDAM(owner, CANDIDATURE_TIME_ID);
         ChangeContractStateDAM({owner, true, false, true, false, false, false, state->is_production_phase});
