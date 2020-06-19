@@ -11,7 +11,17 @@
         return result == hash;
     }
 
-    bool blockbase::IsPublicKeyValid(std::string publicKey){	
+    bool blockbase::IsPublicKeyValid(eosio::name owner, std::string publicKey){
+        producersIndex _producers(_self, owner.value);
+        candidatesIndex _candidates(_self, owner.value);
+
+        for(auto candidate : _candidates){
+            if(candidate.public_key == publicKey) return false;
+        }
+        for(auto producer : _producers){
+            if(producer.public_key == publicKey) return false;
+        }
+
         return publicKey.size() == 53 && publicKey.substr(0,3) == "EOS";
     }
 
@@ -21,6 +31,9 @@
         if(info.ip_sending_phase_duration_in_seconds < MIN_IP_SEND_TIME_IN_SECONDS) return false; 
         if(info.ip_retrieval_phase_duration_in_seconds < MIN_IP_SEND_TIME_IN_SECONDS) return false;
         if(numberOfProducersRequired < MIN_REQUIRED_PRODUCERS) return false;
+        if(info.min_payment_per_block_full_producers > info.max_payment_per_block_full_producers) return false;
+        if(info.min_payment_per_block_history_producers > info.max_payment_per_block_history_producers) return false;
+        if(info.min_payment_per_block_validator_producers > info.max_payment_per_block_validator_producers) return false;
         return info.min_candidature_stake >= MIN_CANDIDATE_STAKE;
     }
 

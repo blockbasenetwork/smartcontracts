@@ -261,7 +261,7 @@ class[[eosio::contract]] blockbase : public eosio::contract {
   private:
     bool IsSecretValid(eosio::name owner, eosio::name name, checksum256 secret);
     bool HasBlockBeenProduced(eosio::name owner, eosio::name producer);
-    bool IsPublicKeyValid(std::string publicKey);
+    bool IsPublicKeyValid(eosio::name owner, std::string publicKey);
     bool IsConfigurationValid(blockbase::contractinfo info);
     bool IsCandidateValid(eosio::name owner, eosio::name producer);
     bool IsCandidaturePhase(eosio::name owner);
