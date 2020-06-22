@@ -187,6 +187,8 @@
 
         auto info = _infos.find(owner.value);
         if(info != _infos.end()) _infos.erase(info);
+
+        auto number_of_producers = informationJson.number_of_validator_producers_required + informationJson.number_of_history_producers_required + informationJson.number_of_full_producers_required;
          
         _infos.emplace(owner, [&](auto &newInfoI) {
             newInfoI.key = owner;
@@ -209,7 +211,7 @@
             newInfoI.ip_sending_phase_end_date_in_seconds = 0;
             newInfoI.ip_retrieval_phase_end_date_in_seconds = 0;
             newInfoI.block_time_in_seconds = informationJson.block_time_in_seconds;
-            newInfoI.num_blocks_between_settlements = informationJson.num_blocks_between_settlements;
+            newInfoI.num_blocks_between_settlements = number_of_producers * 5;
             newInfoI.block_size_in_bytes = informationJson.block_size_in_bytes;
         });
     }
