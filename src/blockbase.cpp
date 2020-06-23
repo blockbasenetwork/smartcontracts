@@ -591,14 +591,12 @@
     require_auth(owner);
     histvalIndex _histval(_self, owner.value);
     producersIndex _producers(_self, owner.value);
-    auto itr = _histval.begin();
-    while (itr != _histval.end()) {
-        if (itr->key.value == producer.value) {
-            auto producerInTable = _producers.find(itr->key.value);
-            if (producerInTable != _producers.end() && producerInTable->warning_type == WARNING_TYPE_FLAGGED)
-                UpdateWarningDAM(owner, producer, WARNING_TYPE_CLEAR);
-            itr = _histval.erase(itr);
-        }
+    auto histval = _histval.find(producer.value);
+    if (histval != _histval.end()) {
+        auto producerInTable = _producers.find(histval->key.value);
+        if (producerInTable != _producers.end() && producerInTable->warning_type == WARNING_TYPE_FLAGGED)
+            UpdateWarningDAM(owner, producer, WARNING_TYPE_CLEAR);
+        histval = _histval.erase(histval);
     }
 }
 

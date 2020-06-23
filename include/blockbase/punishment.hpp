@@ -24,7 +24,7 @@ void blockbase::CheckHistoryValidation(eosio::name owner) {
     histvalIndex _histval(_self, owner.value);
     producersIndex _producers(_self, owner.value);
     auto histval = _histval.begin();
-    if (histval != _histval.end()) {
+    while (histval != _histval.end()) {
         auto producerInTable = _producers.find(histval->key.value);
         if (producerInTable -> warning_type == WARNING_TYPE_FLAGGED) {
             UpdateWarningDAM(owner, producerInTable->key, WARNING_TYPE_PUNISH);
