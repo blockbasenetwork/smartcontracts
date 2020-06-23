@@ -578,6 +578,7 @@
 
     _histval.modify(histval, producer, [&](auto &historyValidationI) {
         historyValidationI.verify_signatures.push_back(verifySignature);
+        historyValidationI.signed_producers.push_back(producer);
     });
 }
 

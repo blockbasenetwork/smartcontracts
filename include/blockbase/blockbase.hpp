@@ -190,6 +190,7 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     struct [[eosio::table]] histval {
         eosio::name key;
         std::string block_hash;
+        std::vector<eosio::name> signed_producers;
         std::vector<std::string> verify_signatures;
         std::vector<char> packed_transaction;
         std::string block_byte_in_hex;
