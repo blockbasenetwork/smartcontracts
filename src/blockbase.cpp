@@ -5,6 +5,7 @@
 #include <eosio/print.hpp>
 #include <eosio/transaction.hpp>
 #include <native.hpp>
+#include <eosio/binary_extension.hpp>
 
 #include <blockbase/blockbase.hpp>
 #include <blockbasetoken/blockbasetoken.hpp>
@@ -36,6 +37,9 @@
     _clients.emplace(owner, [&](auto &newClientI) {
         newClientI.key = owner;
         newClientI.public_key = publicKey;
+        newClientI.sidechain_creation_timestamp.emplace(
+            eosio::current_block_time().to_time_point().sec_since_epoch()
+        );
     });
     eosio::print("Chain started. You can now insert your configurations. \n");
 }

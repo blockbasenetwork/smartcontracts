@@ -1,3 +1,5 @@
+#include <eosio/binary_extension.hpp>
+
 using namespace eosio;
 
 static const eosio::name BLOCKBASE_TOKEN = eosio::name("blockbasetkn");
@@ -97,6 +99,7 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     struct [[eosio::table]] client {
         eosio::name key;
         std::string public_key;
+        eosio::binary_extension<uint64_t> sidechain_creation_timestamp;
         uint64_t primary_key() const { return key.value; }
     };
     typedef eosio::multi_index<eosio::name("client"), client> clientIndex;
