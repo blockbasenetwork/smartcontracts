@@ -287,7 +287,8 @@
     check(candidateStake.amount > 0, "No stake inserted in the sidechain. Please insert a stake first.\n");
 
     check(candidateStake.amount >= info->min_candidature_stake, "Stake inserted is not enough. Please insert more stake to be able to apply.");
-    check((producerType == 1 && info -> number_of_validator_producers_required != 0) || (producerType == 2  && info -> number_of_history_producers_required != 0) || (producerType == 3 && info -> number_of_full_producers_required != 0), "Incorrect producer type. Pleace choose a correct producer type");
+    check(producerType == 1 || producerType == 2 || producerType == 3, "Incorrect producer type. Pleace choose a correct producer type");
+    check((producerType == 1 && info -> number_of_validator_producers_required != 0) || (producerType == 2  && info -> number_of_history_producers_required != 0) || (producerType == 3 && info -> number_of_full_producers_required != 0), "The producer type is not required in the given sidechain configuration. Pleace choose another type");
     AddCandidateDAM(owner, candidate, publicKey, secretHash, producerType);
     eosio::print("Candidate added.");
 }
