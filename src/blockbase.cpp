@@ -643,7 +643,7 @@
     check(producerInTable -> work_duration_in_seconds == std::numeric_limits<uint32_t>::max(), "This producer has already submitted an exit request");
     
     _producers.modify(producerInTable, account, [&](auto &producerI) {
-        producerI.work_duration_in_seconds = eosio::current_block_time().to_time_point().sec_since_epoch() + 172800; // 172800 is two days in seconds.
+        producerI.work_duration_in_seconds = eosio::current_block_time().to_time_point().sec_since_epoch() + 86400; // 86400 is one day in seconds.
     });
    
 }
