@@ -245,7 +245,8 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     [[eosio::action]] void endservice(eosio::name owner);
     [[eosio::action]] void blacklistprod(eosio::name owner);
     [[eosio::action]] void reqhistval(eosio::name owner, eosio::name producer, std::string blockHash);
-    [[eosio::action]] void addblckbyte(eosio::name owner, eosio::name producer, std::string byteInHex);
+    [[eosio::action]] void addblckbyte(eosio::name owner, eosio::name producer, std::string byteInHex, std::vector<char> packedTransaction);
+    [[eosio::action]] void addhistsig(eosio::name owner, eosio::name producer, eosio::name producerToValidade, std::string verifySignature);
     [[eosio::action]] void histvalidate(eosio::name owner, eosio::name producer);
     [[eosio::action]] void addaccperm(eosio::name owner, eosio::name account, std::string publicKey, std::string permissions);
     [[eosio::action]] void remaccperm(eosio::name owner, eosio::name account);
