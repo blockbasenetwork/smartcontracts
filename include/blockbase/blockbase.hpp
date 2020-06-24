@@ -50,7 +50,6 @@ class[[eosio::contract]] blockbase : public eosio::contract {
         eosio::name key;
         std::string public_key;
         uint8_t producer_type;
-        uint8_t warning_type;
         uint64_t work_duration_in_seconds;
         uint64_t sidechain_start_date_in_seconds;
         bool is_ready_to_produce;
@@ -228,6 +227,16 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     };
     typedef eosio::multi_index<eosio::name("version"), version> versionIndex;
 
+    // Warnings Table
+    struct [[eosio::table]] warnings {
+        eosio::name key;
+        uint8_t warning_type;
+        uint64_t warning_creation_date_in_seconds;
+        uint64_t producer_exit_date_in_seconds;
+        uint64_t primary_key() const { return key.value; }
+    };
+    typedef eosio::multi_index<eosio::name("warnings"), warnings> warningsIndex;
+
     [[eosio::action]] void startchain(eosio::name owner, std::string publicKey);
     [[eosio::action]] void configchain(eosio::name owner, blockbase::contractinfo infoJson, std::vector<eosio::name> reservedSeats, uint32_t softwareVersion);
     [[eosio::action]] void startcandtime(eosio::name owner);
@@ -278,6 +287,8 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     void RunSettlement(eosio::name owner);
     void RemoveBadProducers(eosio::name owner);
     void EvaluateProducer(eosio::name owner, eosio::name producer, uint16_t failedBlocks, uint16_t producedBlocks);
+    void AddWarningDAM(eosio::name owner, eosio::name producer, uint8_t warningType);
+    void ClearWarningDAM(eosio::name owner, eosio::name producer);
     void UpdateWarningDAM(eosio::name owner, eosio::name producer, uint8_t warningType);
     void IsRequesterStakeEnough(eosio::name owner);
     void RewardProducerDAM(eosio::name owner, eosio::name producer, uint64_t quantity);

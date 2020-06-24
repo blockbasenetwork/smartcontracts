@@ -3,6 +3,7 @@ void blockbase::RunSettlement(eosio::name owner) {
     infoIndex _infos(_self, owner.value);
     blockscountIndex _blockscount(_self, owner.value);
     producersIndex _producers(_self, owner.value);
+    warningsIndex _warnings(_self, owner.value);
     uint8_t producedBlocks = 0, failedBlocks = 0;
     std::vector<blockbase::producers> readyProducers = blockbase::GetReadyProducers(owner);
     
@@ -15,8 +16,8 @@ void blockbase::RunSettlement(eosio::name owner) {
         EvaluateProducer(owner, producer.key, failedBlocks, producedBlocks);
         
         auto totalProducerPaymentPerBlockMined = CalculateRewardBasedOnBlockSize(owner,producer);
-        auto producerWarning = _producers.find(producer.key.value);
-        if(producerWarning -> warning_type != WARNING_TYPE_PUNISH && producedBlocks > 0) RewardProducerDAM(owner, producer.key, totalProducerPaymentPerBlockMined);
+        auto producerWarning = _warnings.find(producer.key.value);
+        if(((producerWarning != _warnings.end() && producerWarning -> warning_type != WARNING_TYPE_PUNISH) || producerWarning == _warnings.end()) && producedBlocks > 0) RewardProducerDAM(owner, producer.key, totalProducerPaymentPerBlockMined);
     }
     ResetBlockCountDAM(owner);
     IsRequesterStakeEnough(owner);
