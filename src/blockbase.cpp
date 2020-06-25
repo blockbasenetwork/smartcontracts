@@ -551,8 +551,8 @@
 [[eosio::action]] void blockbase::reqhistval(eosio::name owner, eosio::name producer, std::string blockHash) {
     require_auth(owner);
     histvalIndex _histval(_self, owner.value);
-    auto itr = _histval.begin();
-    check(itr == _histval.end(), "Validation request already inserted");
+    auto histval = _histval.find(producer.value);
+    check(histval != _histval.end(), "Validation request for this producer already inserted");
     _histval.emplace(owner, [&](auto &historyValidationI) {
         historyValidationI.key = producer;
         historyValidationI.block_hash = blockHash;
