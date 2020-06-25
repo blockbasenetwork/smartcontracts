@@ -554,7 +554,7 @@
     require_auth(owner);
     histvalIndex _histval(_self, owner.value);
     auto histval = _histval.find(producer.value);
-    check(histval != _histval.end(), "Validation request for this producer already inserted");
+    check(histval == _histval.end(), "Validation request for this producer already inserted");
     _histval.emplace(owner, [&](auto &historyValidationI) {
         historyValidationI.key = producer;
         historyValidationI.block_hash = blockHash;
