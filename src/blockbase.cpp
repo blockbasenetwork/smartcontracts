@@ -532,10 +532,12 @@
     producersIndex _producers(_self, owner.value);
     blacklistIndex _blacklists(_self, owner.value);
     currentprodIndex _currentprods(_self, owner.value);
-    for (auto producer : _producers) {
+    warningsIndex _warnings(_self, owner.value);
 
+    for (auto producer : _producers) {
+        auto producerWarning = _warnings.find(producer.key.value);
         auto blackListedProducer = _blacklists.find(producer.key.value);
-        if (producer.warning_type == WARNING_TYPE_PUNISH && blackListedProducer == _blacklists.end()) {
+        if (producerWarning != _warnings.end() && producerWarning -> warning_type == WARNING_TYPE_PUNISH && blackListedProducer == _blacklists.end()) {
             _blacklists.emplace(owner, [&](auto &blackListedProducerI) {
                 blackListedProducerI.key = producer.key;
             });
@@ -590,12 +592,12 @@
 [[eosio::action]] void blockbase::histvalidate(eosio::name owner, eosio::name producer) {
     require_auth(owner);
     histvalIndex _histval(_self, owner.value);
-    producersIndex _producers(_self, owner.value);
+    warningsIndex _warnings(_self, owner.value);
     auto histval = _histval.find(producer.value);
     if (histval != _histval.end()) {
-        auto producerInTable = _producers.find(histval->key.value);
-        if (producerInTable != _producers.end() && producerInTable->warning_type == WARNING_TYPE_FLAGGED)
-            UpdateWarningDAM(owner, producer, WARNING_TYPE_CLEAR);
+        auto producerWarning = _warnings.find(histval->key.value);
+        if (producerWarning != _warnings.end() && producerWarning->warning_type == WARNING_TYPE_FLAGGED)
+           ClearWarningDAM(owner, producer);
         histval = _histval.erase(histval);
     }
 }
@@ -641,7 +643,7 @@
     check(producerInTable -> work_duration_in_seconds == std::numeric_limits<uint32_t>::max(), "This producer has already submitted an exit request");
     
     _producers.modify(producerInTable, account, [&](auto &producerI) {
-        producerI.work_duration_in_seconds = eosio::current_block_time().to_time_point().sec_since_epoch() + 172800; // 172800 is two days in seconds.
+        producerI.work_duration_in_seconds = eosio::current_block_time().to_time_point().sec_since_epoch() + 86400; // 86400 is one day in seconds.
     });
    
 }

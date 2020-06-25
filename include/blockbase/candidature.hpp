@@ -167,7 +167,6 @@
             newProducerI.key = candidate.key;
             newProducerI.public_key = candidate.public_key;
             newProducerI.work_duration_in_seconds = candidate.work_duration_in_seconds;
-            newProducerI.warning_type = WARNING_TYPE_CLEAR;
             newProducerI.is_ready_to_produce = false;
             newProducerI.sidechain_start_date_in_seconds = eosio::current_block_time().to_time_point().sec_since_epoch();
             newProducerI.producer_type = candidate.producer_type;

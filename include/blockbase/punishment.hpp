@@ -1,35 +1,35 @@
 void blockbase::EvaluateProducer(eosio::name owner, eosio::name producer, uint16_t failedBlocks, uint16_t producedBlocks) {
-    producersIndex _producers(_self, owner.value);
-    auto producerInTable = _producers.find(producer.value);
+    warningsIndex _warnings(_self, owner.value);
+    auto producerWarning = _warnings.find(producer.value);
     uint16_t totalBlocks = producedBlocks + failedBlocks;
     uint16_t totalFailedBlocksPermited = ceil(MIN_BLOCKS_THRESHOLD_FOR_PUNISH * totalBlocks);
     if (failedBlocks >= totalFailedBlocksPermited) 
     {
-        if (producerInTable -> warning_type == WARNING_TYPE_FLAGGED)
+        if (producerWarning != _warnings.end() && producerWarning -> warning_type == WARNING_TYPE_FLAGGED)
         {
             UpdateWarningDAM(owner, producer, WARNING_TYPE_PUNISH);
         }
-        else
+        else if(producerWarning == _warnings.end())
         {
-            UpdateWarningDAM(owner, producer, WARNING_TYPE_FLAGGED);
+            AddWarningDAM(owner, producer, WARNING_TYPE_FLAGGED);
         }
     } 
-    else if (failedBlocks == 0 && producerInTable -> warning_type == WARNING_TYPE_FLAGGED) 
+    else if (producerWarning != _warnings.end() && failedBlocks == 0 && producerWarning -> warning_type == WARNING_TYPE_FLAGGED) 
     {
-        UpdateWarningDAM(owner, producer, WARNING_TYPE_CLEAR);
+       ClearWarningDAM(owner, producer);
     }
 }
 
 void blockbase::CheckHistoryValidation(eosio::name owner) {
     histvalIndex _histval(_self, owner.value);
-    producersIndex _producers(_self, owner.value);
+    warningsIndex _warnings(_self, owner.value);
     auto histval = _histval.begin();
     while (histval != _histval.end()) {
-        auto producerInTable = _producers.find(histval->key.value);
-        if (producerInTable -> warning_type == WARNING_TYPE_FLAGGED) {
-            UpdateWarningDAM(owner, producerInTable->key, WARNING_TYPE_PUNISH);
-        } else {
-            UpdateWarningDAM(owner, producerInTable->key, WARNING_TYPE_FLAGGED);
+        auto producerWarning = _warnings.find(histval->key.value);
+        if (producerWarning != _warnings.end() && producerWarning -> warning_type == WARNING_TYPE_FLAGGED) {
+            UpdateWarningDAM(owner, histval->key, WARNING_TYPE_PUNISH);
+        } else if(producerWarning == _warnings.end()) {
+            AddWarningDAM(owner, histval->key, WARNING_TYPE_FLAGGED);
         }
         _histval.erase(histval);
     }
@@ -37,9 +37,11 @@ void blockbase::CheckHistoryValidation(eosio::name owner) {
 
 std::vector<struct blockbase::producers> blockbase::GetPunishedProducers(eosio::name owner) {
     producersIndex _producers(_self, owner.value);
+    warningsIndex _warnings (_self, owner.value);
     std::vector<struct blockbase::producers> producerToPunish;
     for(auto& producer : _producers) {
-        if(producer.warning_type == WARNING_TYPE_PUNISH) producerToPunish.push_back(producer);
+        auto producerWarning = _warnings.find(producer.key.value);
+        if(producerWarning != _warnings.end() && producerWarning -> warning_type == WARNING_TYPE_PUNISH) producerToPunish.push_back(producer);
     }
     return producerToPunish;
 }
@@ -72,12 +74,28 @@ std::vector<struct blockbase::producers> blockbase::GetProducersWhoFailedToSendI
     return producersToRemove;
 }
 
+    void blockbase::AddWarningDAM(eosio::name owner, eosio::name producer, uint8_t warningType) {
+        warningsIndex _wannings(_self, owner.value);
+        _wannings.emplace(owner, [&](auto &newProducerWarningI) {
+            newProducerWarningI.key = producer;
+            newProducerWarningI.warning_type = warningType;
+            newProducerWarningI.warning_creation_date_in_seconds = eosio::current_block_time().to_time_point().sec_since_epoch();
+            newProducerWarningI.producer_exit_date_in_seconds = 0;
+        });
+    }
+
 void blockbase::UpdateWarningDAM(eosio::name owner, eosio::name producer, uint8_t warningType) {
-    producersIndex _producers(_self, owner.value);
-    auto producerInSidechain= _producers.find(producer.value);
-    _producers.modify(producerInSidechain, owner, [&](auto &producerIT) {
-        producerIT.warning_type = warningType;
+    warningsIndex _warnings(_self, owner.value);
+    auto producerWarning = _warnings.find(producer.value);
+    _warnings.modify(producerWarning, owner, [&](auto &producerWarningI) {
+        producerWarningI.warning_type = warningType;
     });
+}
+
+void blockbase::ClearWarningDAM(eosio::name owner, eosio::name producer) {
+    warningsIndex _warnings(_self, owner.value);
+    auto producerWarning = _warnings.find(producer.value);
+    _warnings.erase(producerWarning);
 }
 
 void blockbase::RemoveProducersDAM(eosio::name owner, std::vector<struct blockbase::producers> producers) {
