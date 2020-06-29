@@ -182,6 +182,7 @@
     }  else {
         for (auto candidate : selectedCandidateList) {
             AddProducerDAM(owner, candidate);
+            UpdateWarningTimeInNewProducer(owner, candidate.key);
             AddPublicKeyDAM(owner, candidate.key, candidate.public_key);
             RemoveCandidateDAM(owner, candidate.key);
         }
@@ -535,9 +536,9 @@
     warningsIndex _warnings(_self, owner.value);
 
     for (auto producer : _producers) {
-        auto producerWarning = _warnings.find(producer.key.value);
+        auto producerWarningId = GetSpecificProducerWarningId(owner, producer.key, WARNING_TYPE_PUNISH);
         auto blackListedProducer = _blacklists.find(producer.key.value);
-        if (producerWarning != _warnings.end() && producerWarning -> warning_type == WARNING_TYPE_PUNISH && blackListedProducer == _blacklists.end()) {
+        if (blackListedProducer == _blacklists.end() && producerWarningId != -1) {
             _blacklists.emplace(owner, [&](auto &blackListedProducerI) {
                 blackListedProducerI.key = producer.key;
             });
@@ -595,9 +596,9 @@
     warningsIndex _warnings(_self, owner.value);
     auto histval = _histval.find(producer.value);
     if (histval != _histval.end()) {
-        auto producerWarning = _warnings.find(histval->key.value);
-        if (producerWarning != _warnings.end() && producerWarning->warning_type == WARNING_TYPE_FLAGGED)
-           ClearWarningDAM(owner, producer);
+        auto producerSpecificWarningId = GetSpecificProducerWarningId(owner, producer, WARNING_TYPE_HISTORY_VALIDATION_FAILED);
+        if (producerSpecificWarningId != -1)
+           ClearWarningDAM(owner, producer, producerSpecificWarningId);
         histval = _histval.erase(histval);
     }
 }
@@ -662,6 +663,7 @@
     histvalIndex _histval(_self, owner.value);
     verifysigIndex _verifysig(_self, owner.value);
     versionIndex _version(_self, owner.value);
+    warningsIndex _warnings(_self, owner.value);
 
     RemoveProducersDAM(owner);
     RemoveIPsDAM(owner);
@@ -710,6 +712,10 @@
     auto itr10 = _version.begin();
     while (itr10 != _version.end())
         itr10 = _version.erase(itr10);
+
+    auto itr11 = _warnings.begin();
+    while (itr11 != _warnings.end())
+        itr11 = _warnings.erase(itr11);
 
     eosio::print("Service Ended. \n");
 }

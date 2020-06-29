@@ -144,6 +144,7 @@
                 }
                 
                 AddProducerDAM(owner, candidate);
+                UpdateWarningTimeInNewProducer(owner, candidate.key);
                 AddPublicKeyDAM(owner, candidate.key, candidate.public_key);
                 RemoveCandidateDAM(owner, candidate.key);
             }   
@@ -171,6 +172,21 @@
             newProducerI.sidechain_start_date_in_seconds = eosio::current_block_time().to_time_point().sec_since_epoch();
             newProducerI.producer_type = candidate.producer_type;
         });
+    }
+    
+    void blockbase::UpdateWarningTimeInNewProducer(eosio::name owner, eosio::name producer) {
+        warningsIndex _warnings(_self, owner.value);
+        auto producerWarningsList = GetAllProducerWarnings(owner, producer);
+        
+        if(std::distance(producerWarningsList.begin(), producerWarningsList.end()) != 0) {
+            for(auto warning : producerWarningsList) {
+                auto warningITR = _warnings.find(warning.key);
+                _warnings.modify(warningITR, producer, [&](auto &warningI) {
+                    warningI.warning_creation_date_in_seconds = eosio::current_block_time().to_time_point().sec_since_epoch() - (warning.producer_exit_date_in_seconds - warning.warning_creation_date_in_seconds);
+                    warningI.producer_exit_date_in_seconds = 0;
+                });
+            }
+        }
     }
     
     void blockbase::AddPublicKeyDAM(eosio::name owner, eosio::name producer, std::string publicKey) {
