@@ -119,17 +119,17 @@ void blockbase::RemoveIPsDAM(eosio::name owner) {
 
 void blockbase::RemoveAllProducerWarningsDAM(eosio::name owner, std::vector<struct producers> producers) {
     warningsIndex _warnings(_self, owner.value);
-    std::map<uint64_t, eosio::name> warningsToClearProducerIdList;
+    std::map<uint64_t, eosio::name> warningIdProducerNameMapToClear;
     for (auto producer : producers) {
         for(auto warning : _warnings) {
             if(warning.producer == producer.key) {
-                warningsToClearProducerIdList.insert(std::pair<uint64_t, eosio::name>(warning.key, producer.key));
+                warningIdProducerNameMapToClear.insert(std::pair<uint64_t, eosio::name>(warning.key, producer.key));
             }
         }
     }
 
-    for(auto const& warningToClearProducerId : warningsToClearProducerIdList) {
-        ClearWarningDAM(owner, warningToClearProducerId.second, warningToClearProducerId.first);
+    for(auto const& warningIdProducerNamePairToClear : warningIdProducerNameMapToClear) {
+        ClearWarningDAM(owner, warningIdProducerNamePairToClear.second, warningIdProducerNamePairToClear.first);
     }
 }
 
