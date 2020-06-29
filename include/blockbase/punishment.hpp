@@ -18,7 +18,7 @@ void blockbase::CheckHistoryValidation(eosio::name owner) {
         if(producerWarningId == -1) {
             AddWarningDAM(owner, histval->key, WARNING_TYPE_HISTORY_VALIDATION_FAILED);
         }
-        _histval.erase(histval);
+        histval = _histval.erase(histval);
     }
 }
 
