@@ -122,7 +122,7 @@ void blockbase::RemoveAllProducerWarningsDAM(eosio::name owner, std::vector<stru
     for (auto producer : producers) {
         for(auto warning : _warnings) {
             if(warning.producer == producer.key) {
-                ClearWarningDAM(owner, producer, warning.key);
+                ClearWarningDAM(owner, producer.key, warning.key);
             }
         }
     }
