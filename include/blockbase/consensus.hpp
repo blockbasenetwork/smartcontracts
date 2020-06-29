@@ -17,7 +17,7 @@ void blockbase::RunSettlement(eosio::name owner) {
         
         auto totalProducerPaymentPerBlockMined = CalculateRewardBasedOnBlockSize(owner,producer);
         auto producerWarningId = GetSpecificProducerWarningId(owner, producer.key, WARNING_TYPE_PUNISH);
-        if(producerWarningId != 0 && producedBlocks > 0) RewardProducerDAM(owner, producer.key, totalProducerPaymentPerBlockMined);
+        if(producerWarningId == -1 && producedBlocks > 0) RewardProducerDAM(owner, producer.key, totalProducerPaymentPerBlockMined);
     }
     ResetBlockCountDAM(owner);
     IsRequesterStakeEnough(owner);
