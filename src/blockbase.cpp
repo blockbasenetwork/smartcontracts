@@ -554,8 +554,8 @@
 [[eosio::action]] void blockbase::reqhistval(eosio::name owner, eosio::name producer, std::string blockHash) {
     require_auth(owner);
     histvalIndex _histval(_self, owner.value);
-    auto itr = _histval.begin();
-    check(itr == _histval.end(), "Validation request already inserted");
+    auto histval = _histval.find(producer.value);
+    check(histval == _histval.end(), "Validation request for this producer already inserted");
     _histval.emplace(owner, [&](auto &historyValidationI) {
         historyValidationI.key = producer;
         historyValidationI.block_hash = blockHash;
@@ -582,7 +582,7 @@
     auto producerInTable = _producers.find(producer.value);
     check(producerInTable != _producers.end(), "Not a producer in this chain to be able to run action");
     check(histval != _histval.end(), "No validation request for this producer inserted");
-    check(std::find(histval->verify_signatures.begin(), histval->verify_signatures.end(), verifySignature) != histval->verify_signatures.end(), "Signature already inserted");
+    check(std::find(histval->verify_signatures.begin(), histval->verify_signatures.end(), verifySignature) == histval->verify_signatures.end(), "Signature already inserted");
 
     _histval.modify(histval, producer, [&](auto &historyValidationI) {
         historyValidationI.verify_signatures.push_back(verifySignature);
