@@ -144,6 +144,7 @@
                 }
                 
                 AddProducerDAM(owner, candidate);
+                UpdateWarningTimeInNewProducer(owner, candidate.key);
                 AddPublicKeyDAM(owner, candidate.key, candidate.public_key);
                 RemoveCandidateDAM(owner, candidate.key);
             }   
@@ -167,11 +168,25 @@
             newProducerI.key = candidate.key;
             newProducerI.public_key = candidate.public_key;
             newProducerI.work_duration_in_seconds = candidate.work_duration_in_seconds;
-            newProducerI.warning_type = WARNING_TYPE_CLEAR;
             newProducerI.is_ready_to_produce = false;
             newProducerI.sidechain_start_date_in_seconds = eosio::current_block_time().to_time_point().sec_since_epoch();
             newProducerI.producer_type = candidate.producer_type;
         });
+    }
+    
+    void blockbase::UpdateWarningTimeInNewProducer(eosio::name owner, eosio::name producer) {
+        warningsIndex _warnings(_self, owner.value);
+        auto producerWarningsList = GetAllProducerWarnings(owner, producer);
+        
+        if(std::distance(producerWarningsList.begin(), producerWarningsList.end()) != 0) {
+            for(auto warning : producerWarningsList) {
+                auto warningITR = _warnings.find(warning.key);
+                _warnings.modify(warningITR, producer, [&](auto &warningI) {
+                    warningI.warning_creation_date_in_seconds = eosio::current_block_time().to_time_point().sec_since_epoch() - (warning.producer_exit_date_in_seconds - warning.warning_creation_date_in_seconds);
+                    warningI.producer_exit_date_in_seconds = 0;
+                });
+            }
+        }
     }
     
     void blockbase::AddPublicKeyDAM(eosio::name owner, eosio::name producer, std::string publicKey) {
@@ -187,6 +202,8 @@
 
         auto info = _infos.find(owner.value);
         if(info != _infos.end()) _infos.erase(info);
+
+        auto number_of_producers = informationJson.number_of_validator_producers_required + informationJson.number_of_history_producers_required + informationJson.number_of_full_producers_required;
          
         _infos.emplace(owner, [&](auto &newInfoI) {
             newInfoI.key = owner;
@@ -209,7 +226,7 @@
             newInfoI.ip_sending_phase_end_date_in_seconds = 0;
             newInfoI.ip_retrieval_phase_end_date_in_seconds = 0;
             newInfoI.block_time_in_seconds = informationJson.block_time_in_seconds;
-            newInfoI.num_blocks_between_settlements = informationJson.num_blocks_between_settlements;
+            newInfoI.num_blocks_between_settlements = number_of_producers * 5;
             newInfoI.block_size_in_bytes = informationJson.block_size_in_bytes;
         });
     }

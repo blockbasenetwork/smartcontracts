@@ -1,3 +1,5 @@
+#include <eosio/binary_extension.hpp>
+
 using namespace eosio;
 
 static const eosio::name BLOCKBASE_TOKEN = eosio::name("blockbasetkn");
@@ -17,9 +19,9 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     const uint8_t MIN_REQUIRED_PRODUCERS = 1;
 
     // Warning
-    const uint8_t WARNING_TYPE_CLEAR = 0;
-    const uint8_t WARNING_TYPE_FLAGGED = 1;
-    const uint8_t WARNING_TYPE_PUNISH = 2;
+    const uint8_t WARNING_TYPE_PUNISH = 0;
+    const uint8_t WARNING_TYPE_BLOCKS_FAILED = 1;
+    const uint8_t WARNING_TYPE_HISTORY_VALIDATION_FAILED = 2;
 
     // Producer Types
     const uint8_t PRODUCER_TYPE_VALIDATOR = 1;
@@ -48,7 +50,6 @@ class[[eosio::contract]] blockbase : public eosio::contract {
         eosio::name key;
         std::string public_key;
         uint8_t producer_type;
-        uint8_t warning_type;
         uint64_t work_duration_in_seconds;
         uint64_t sidechain_start_date_in_seconds;
         bool is_ready_to_produce;
@@ -97,6 +98,7 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     struct [[eosio::table]] client {
         eosio::name key;
         std::string public_key;
+        eosio::binary_extension<uint64_t> sidechain_creation_timestamp;
         uint64_t primary_key() const { return key.value; }
     };
     typedef eosio::multi_index<eosio::name("client"), client> clientIndex;
@@ -190,6 +192,7 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     struct [[eosio::table]] histval {
         eosio::name key;
         std::string block_hash;
+        std::vector<eosio::name> signed_producers;
         std::vector<std::string> verify_signatures;
         std::vector<char> packed_transaction;
         std::string block_byte_in_hex;
@@ -224,6 +227,19 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     };
     typedef eosio::multi_index<eosio::name("version"), version> versionIndex;
 
+    // Warnings Table
+    struct [[eosio::table]] warnings {
+        uint64_t key;
+        eosio::name producer;
+        uint8_t warning_type;
+        uint64_t warning_creation_date_in_seconds;
+        uint64_t producer_exit_date_in_seconds;
+        uint64_t primary_key() const { return key; }
+        uint64_t by_exit_time() const { return producer_exit_date_in_seconds; }
+    };
+    typedef eosio::multi_index<eosio::name("warnings"), warnings, 
+    indexed_by<"byexittime"_n, const_mem_fun<warnings, uint64_t, &warnings::by_exit_time>>> warningsIndex;
+
     [[eosio::action]] void startchain(eosio::name owner, std::string publicKey);
     [[eosio::action]] void configchain(eosio::name owner, blockbase::contractinfo infoJson, std::vector<eosio::name> reservedSeats, uint32_t softwareVersion);
     [[eosio::action]] void startcandtime(eosio::name owner);
@@ -245,8 +261,9 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     [[eosio::action]] void endservice(eosio::name owner);
     [[eosio::action]] void blacklistprod(eosio::name owner);
     [[eosio::action]] void reqhistval(eosio::name owner, eosio::name producer, std::string blockHash);
-    [[eosio::action]] void addblckbyte(eosio::name owner, eosio::name producer, std::string byteInHex);
-    [[eosio::action]] void histvalidate(eosio::name owner, eosio::name producer);
+    [[eosio::action]] void addblckbyte(eosio::name owner, eosio::name producer, std::string byteInHex, std::vector<char> packedTransaction);
+    [[eosio::action]] void addhistsig(eosio::name owner, eosio::name producer, eosio::name producerToValidade, std::string verifySignature);
+    [[eosio::action]] void histvalidate(eosio::name owner, eosio::name producer, std::string blockHash);
     [[eosio::action]] void addaccperm(eosio::name owner, eosio::name account, std::string publicKey, std::string permissions);
     [[eosio::action]] void remaccperm(eosio::name owner, eosio::name account);
     [[eosio::action]] void addversig(eosio::name owner, eosio::name account, std::string blockHash, std::string verifySignature, std::vector<char> packedTransaction);
@@ -273,7 +290,11 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     void RunSettlement(eosio::name owner);
     void RemoveBadProducers(eosio::name owner);
     void EvaluateProducer(eosio::name owner, eosio::name producer, uint16_t failedBlocks, uint16_t producedBlocks);
-    void UpdateWarningDAM(eosio::name owner, eosio::name producer, uint8_t warningType);
+    void AddWarningDAM(eosio::name owner, eosio::name producer, uint8_t warningType);
+    void ClearWarningDAM(eosio::name owner, eosio::name producer, uint64_t warningId);
+    void UpdateWarningTimeInNewProducer(eosio::name owner, eosio::name producer);
+    void WarningsManage(eosio::name owner);
+    void RemoveAllProducerWarningsDAM(eosio::name owner, std::vector<struct producers> producers);
     void IsRequesterStakeEnough(eosio::name owner);
     void RewardProducerDAM(eosio::name owner, eosio::name producer, uint64_t quantity);
     void UpdateBlockCount(eosio::name owner, eosio::name producer);
@@ -304,6 +325,8 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     std::vector<struct blockbase::candidates> RunCandidatesSelectionForType(eosio::name owner, uint8_t producerType);
     std::vector<struct blockbase::producers> GetPunishedProducers(eosio::name owner);
     std::vector<struct blockbase::producers> GetProducersWhoFailedToSendIPs(eosio::name owner);
+    std::vector<struct blockbase::warnings> GetAllProducerWarnings(eosio::name owner, eosio::name producer);
+    int64_t GetSpecificProducerWarningId(eosio::name owner,eosio::name producer, uint8_t warningType);
     blockbase::producers GetNextProducer(eosio::name owner);
     std::vector<struct blockbase::blockheaders> GetLatestBlock(eosio::name owner);
     std::vector<struct blockbase::producers> GetReadyProducers(eosio::name owner);

@@ -5,6 +5,7 @@
 #include <eosio/print.hpp>
 #include <eosio/transaction.hpp>
 #include <native.hpp>
+#include <eosio/binary_extension.hpp>
 
 #include <blockbase/blockbase.hpp>
 #include <blockbasetoken/blockbasetoken.hpp>
@@ -36,6 +37,9 @@
     _clients.emplace(owner, [&](auto &newClientI) {
         newClientI.key = owner;
         newClientI.public_key = publicKey;
+        newClientI.sidechain_creation_timestamp.emplace(
+            eosio::current_block_time().to_time_point().sec_since_epoch()
+        );
     });
     eosio::print("Chain started. You can now insert your configurations. \n");
 }
@@ -178,6 +182,7 @@
     }  else {
         for (auto candidate : selectedCandidateList) {
             AddProducerDAM(owner, candidate);
+            UpdateWarningTimeInNewProducer(owner, candidate.key);
             AddPublicKeyDAM(owner, candidate.key, candidate.public_key);
             RemoveCandidateDAM(owner, candidate.key);
         }
@@ -284,6 +289,7 @@
 
     check(candidateStake.amount >= info->min_candidature_stake, "Stake inserted is not enough. Please insert more stake to be able to apply.");
     check(producerType == 1 || producerType == 2 || producerType == 3, "Incorrect producer type. Pleace choose a correct producer type");
+    check((producerType == 1 && info -> number_of_validator_producers_required != 0) || (producerType == 2  && info -> number_of_history_producers_required != 0) || (producerType == 3 && info -> number_of_full_producers_required != 0), "The producer type is not required in the given sidechain configuration. Pleace choose another type");
     AddCandidateDAM(owner, candidate, publicKey, secretHash, producerType);
     eosio::print("Candidate added.");
 }
@@ -527,10 +533,12 @@
     producersIndex _producers(_self, owner.value);
     blacklistIndex _blacklists(_self, owner.value);
     currentprodIndex _currentprods(_self, owner.value);
-    for (auto producer : _producers) {
+    warningsIndex _warnings(_self, owner.value);
 
+    for (auto producer : _producers) {
+        auto producerWarningId = GetSpecificProducerWarningId(owner, producer.key, WARNING_TYPE_PUNISH);
         auto blackListedProducer = _blacklists.find(producer.key.value);
-        if (producer.warning_type == WARNING_TYPE_PUNISH && blackListedProducer == _blacklists.end()) {
+        if (blackListedProducer == _blacklists.end() && producerWarningId != -1) {
             _blacklists.emplace(owner, [&](auto &blackListedProducerI) {
                 blackListedProducerI.key = producer.key;
             });
@@ -546,38 +554,53 @@
 [[eosio::action]] void blockbase::reqhistval(eosio::name owner, eosio::name producer, std::string blockHash) {
     require_auth(owner);
     histvalIndex _histval(_self, owner.value);
-    auto itr = _histval.begin();
-    check(itr == _histval.end(), "Validation request already inserted");
+    auto histval = _histval.find(producer.value);
+    check(histval == _histval.end(), "Validation request for this producer already inserted");
     _histval.emplace(owner, [&](auto &historyValidationI) {
         historyValidationI.key = producer;
         historyValidationI.block_hash = blockHash;
     });
 }
 
-[[eosio::action]] void blockbase::addblckbyte(eosio::name owner, eosio::name producer, std::string byteInHex) {
+[[eosio::action]] void blockbase::addblckbyte(eosio::name owner, eosio::name producer, std::string byteInHex, std::vector<char> packedTransaction) {
     require_auth(producer);
     histvalIndex _histval(_self, owner.value);
-    auto itr = _histval.begin();
-    check(itr != _histval.end(), "No validation request inserted");
-    check(itr->key.value == producer.value, "Not requested producer");
+    auto histval = _histval.find(producer.value);
+    check(histval != _histval.end(), "No validation request for this producer inserted");
 
-    _histval.modify(itr, producer, [&](auto &historyValidationI) {
+    _histval.modify(histval, producer, [&](auto &historyValidationI) {
         historyValidationI.block_byte_in_hex = byteInHex;
+        historyValidationI.packed_transaction = packedTransaction;
     });
 }
 
-[[eosio::action]] void blockbase::histvalidate(eosio::name owner, eosio::name producer) {
-    require_auth(owner);
+[[eosio::action]] void blockbase::addhistsig(eosio::name owner, eosio::name producer, eosio::name producerToValidade, std::string verifySignature) {
+    require_auth(producer);
     histvalIndex _histval(_self, owner.value);
     producersIndex _producers(_self, owner.value);
-    auto itr = _histval.begin();
-    while (itr != _histval.end()) {
-        if (itr->key.value == producer.value) {
-            auto producerInTable = _producers.find(itr->key.value);
-            if (producerInTable != _producers.end() && producerInTable->warning_type == WARNING_TYPE_FLAGGED)
-                UpdateWarningDAM(owner, producer, WARNING_TYPE_CLEAR);
-            itr = _histval.erase(itr);
-        }
+    auto histval = _histval.find(producerToValidade.value);
+    auto producerInTable = _producers.find(producer.value);
+    check(producerInTable != _producers.end(), "Not a producer in this chain to be able to run action");
+    check(histval != _histval.end(), "No validation request for this producer inserted");
+    check(std::find(histval->verify_signatures.begin(), histval->verify_signatures.end(), verifySignature) == histval->verify_signatures.end(), "Signature already inserted");
+
+    _histval.modify(histval, producer, [&](auto &historyValidationI) {
+        historyValidationI.verify_signatures.push_back(verifySignature);
+        historyValidationI.signed_producers.push_back(producer);
+    });
+}
+
+[[eosio::action]] void blockbase::histvalidate(eosio::name owner, eosio::name producer, std::string blockHash) {
+    require_auth(owner);
+    histvalIndex _histval(_self, owner.value);
+    warningsIndex _warnings(_self, owner.value);
+    auto histval = _histval.find(producer.value);
+    if (histval != _histval.end()) {
+        check(histval->block_hash == blockHash, "Sent block hash is not valid");
+        auto producerSpecificWarningId = GetSpecificProducerWarningId(owner, producer, WARNING_TYPE_HISTORY_VALIDATION_FAILED);
+        if (producerSpecificWarningId != -1)
+           ClearWarningDAM(owner, producer, producerSpecificWarningId);
+        histval = _histval.erase(histval);
     }
 }
 
@@ -622,7 +645,7 @@
     check(producerInTable -> work_duration_in_seconds == std::numeric_limits<uint32_t>::max(), "This producer has already submitted an exit request");
     
     _producers.modify(producerInTable, account, [&](auto &producerI) {
-        producerI.work_duration_in_seconds = eosio::current_block_time().to_time_point().sec_since_epoch() + 172800; // 172800 is two days in seconds.
+        producerI.work_duration_in_seconds = eosio::current_block_time().to_time_point().sec_since_epoch() + 86400; // 86400 is one day in seconds.
     });
    
 }
@@ -641,6 +664,7 @@
     histvalIndex _histval(_self, owner.value);
     verifysigIndex _verifysig(_self, owner.value);
     versionIndex _version(_self, owner.value);
+    warningsIndex _warnings(_self, owner.value);
 
     RemoveProducersDAM(owner);
     RemoveIPsDAM(owner);
@@ -689,6 +713,10 @@
     auto itr10 = _version.begin();
     while (itr10 != _version.end())
         itr10 = _version.erase(itr10);
+
+    auto itr11 = _warnings.begin();
+    while (itr11 != _warnings.end())
+        itr11 = _warnings.erase(itr11);
 
     eosio::print("Service Ended. \n");
 }
