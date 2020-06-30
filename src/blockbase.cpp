@@ -590,12 +590,13 @@
     });
 }
 
-[[eosio::action]] void blockbase::histvalidate(eosio::name owner, eosio::name producer) {
+[[eosio::action]] void blockbase::histvalidate(eosio::name owner, eosio::name producer, std::string blockHash) {
     require_auth(owner);
     histvalIndex _histval(_self, owner.value);
     warningsIndex _warnings(_self, owner.value);
     auto histval = _histval.find(producer.value);
     if (histval != _histval.end()) {
+        check(histval->block_hash == blockHash, "Sent block hash is not valid");
         auto producerSpecificWarningId = GetSpecificProducerWarningId(owner, producer, WARNING_TYPE_HISTORY_VALIDATION_FAILED);
         if (producerSpecificWarningId != -1)
            ClearWarningDAM(owner, producer, producerSpecificWarningId);
