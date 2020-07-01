@@ -300,7 +300,7 @@
     stateIndex _states(_self, owner.value);
 
     auto state = _states.find(owner.value);
-    check(state != _states.end() && state->has_chain_started == true && state->is_ip_sending_phase == true, "The chain is not in the IP sending phase, please check the current state of the chain. \n");
+    check(state != _states.end() && state->has_chain_started == true && (state->is_ip_sending_phase == true || state->is_production_phase), "The chain is not in the IP sending phase, please check the current state of the chain. \n");
 
     ipsIndex _ips(_self, owner.value);
     auto ip = _ips.find(producer.value);
