@@ -330,6 +330,6 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     blockbase::producers GetNextProducer(eosio::name owner);
     std::vector<struct blockbase::blockheaders> GetLatestBlock(eosio::name owner);
     std::vector<struct blockbase::producers> GetReadyProducers(eosio::name owner);
-    void RemoveProducerWithWorktimeFinnished(eosio::name owner);
+    void RemoveProducerWithWorktimeFinished(eosio::name owner);
     void CheckHistoryValidation(eosio::name owner);
 };

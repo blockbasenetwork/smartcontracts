@@ -23,7 +23,7 @@ void blockbase::RunSettlement(eosio::name owner) {
     IsRequesterStakeEnough(owner);
     CheckHistoryValidation(owner);
     WarningsManage(owner);
-    RemoveProducerWithWorktimeFinnished(owner);
+    RemoveProducerWithWorktimeFinished(owner);
     eosio::print("Computation has ended. \n");
 }
 
@@ -158,12 +158,12 @@ void blockbase::DeleteCurrentProducerDAM(eosio::name owner, std::vector<struct p
     }
 }
 
-void blockbase::RemoveProducerWithWorktimeFinnished(eosio::name owner){
+void blockbase::RemoveProducerWithWorktimeFinished(eosio::name owner){
     producersIndex _producers(_self, owner.value);
     warningsIndex _warnings(_self, owner.value);
     std::vector<struct producers> producersToRemove;
     for(auto producer : _producers) {
-        if(producer.work_duration_in_seconds + producer.sidechain_start_date_in_seconds <= eosio::current_block_time().to_time_point().sec_since_epoch()) {        
+        if(producer.work_duration_in_seconds <= eosio::current_block_time().to_time_point().sec_since_epoch()) {        
             auto warningsByExitTime = _warnings.get_index<"byexittime"_n>(); // If is producer makes sense to order by exittime due to the producer_exit_date_in_seconds being 0
             for(auto warning : warningsByExitTime) {
                 if(warning.producer == producer.key) {
