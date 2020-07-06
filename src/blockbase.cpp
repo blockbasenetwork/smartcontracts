@@ -162,6 +162,8 @@
     check(eosio::current_block_time().to_time_point().sec_since_epoch() >= info->secret_sending_phase_end_date_in_seconds && info->secret_sending_phase_end_date_in_seconds != 0, "The secrect phase hasn't finished yet, please check the contract information for more details.");
 
     AddCandidatesWithReservedSeat(owner);
+    std::vector<struct blockbase::candidates> candidatesToClear = GetCandidatesToClear(owner);
+    RemoveCandidatesDAM(owner, candidatesToClear);
 
     auto producersInSidechainCount = std::distance(_producers.begin(), _producers.end());
     auto numberOfProducersRequired = info->number_of_validator_producers_required + info->number_of_history_producers_required + info->number_of_full_producers_required;

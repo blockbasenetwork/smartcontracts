@@ -318,6 +318,7 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     void ReOpenCandidaturePhaseIfRequired(eosio::name owner);
     void ChangeContractStateDAM(struct blockbase::contractst states);
     void RemoveCandidateDAM(eosio::name owner, eosio::name candidate);
+    void RemoveCandidatesDAM(eosio::name owner, std::vector<struct blockbase::candidates> candidates);
     void SoftwareVersionDAM(eosio::name owner, uint32_t softwareVersion);
     uint8_t CalculateNumberOfIPsRequired(float numberOfProducers);
     uint8_t CalculateMultiSigThreshold(uint8_t producersNumber);
@@ -333,4 +334,5 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     std::vector<struct blockbase::producers> GetReadyProducers(eosio::name owner);
     void RemoveProducerWithWorktimeFinished(eosio::name owner);
     void CheckHistoryValidation(eosio::name owner);
+    std::vector<struct blockbase::candidates> GetCandidatesToClear(eosio::name owner);
 };
