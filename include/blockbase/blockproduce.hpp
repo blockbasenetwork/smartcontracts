@@ -164,3 +164,13 @@ void blockbase::RemoveBlockCountDAM(eosio::name owner, std::vector<struct produc
     }
   
 }
+
+void blockbase::RemoveHistVerDAM(eosio::name owner, std::vector<struct producers> producers) {
+    histvalIndex _histval(_self, owner.value);
+    for(auto producerToRemove : producers) {
+        auto producerHistValToRemove = _histval.find(producerToRemove.key.value);
+        if(_histval.end() != producerHistValToRemove) {
+            _histval.erase(producerHistValToRemove);
+        }
+    }
+}

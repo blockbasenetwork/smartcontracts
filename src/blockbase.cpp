@@ -665,6 +665,7 @@
     verifysigIndex _verifysig(_self, owner.value);
     versionIndex _version(_self, owner.value);
     warningsIndex _warnings(_self, owner.value);
+    reservedseatIndex _reservedseats(_self, owner.value);
 
     RemoveProducersDAM(owner);
     RemoveIPsDAM(owner);
@@ -717,6 +718,10 @@
     auto itr11 = _warnings.begin();
     while (itr11 != _warnings.end())
         itr11 = _warnings.erase(itr11);
+
+    auto itr12 = _reservedseats.begin();
+    while (itr12 != _reservedseats.end())
+        itr12 = _reservedseats.erase(itr12);
 
     eosio::print("Service Ended. \n");
 }

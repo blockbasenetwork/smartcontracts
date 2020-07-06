@@ -36,6 +36,7 @@ void blockbase::RemoveBadProducers(eosio::name owner) {
         DeleteCurrentProducerDAM(owner,punishedProducers);
         RemoveBlockCountDAM(owner,punishedProducers);
         RemoveAllProducerWarningsDAM(owner, punishedProducers);
+        RemoveHistVerDAM(owner, punishedProducers);
     }
 }
 

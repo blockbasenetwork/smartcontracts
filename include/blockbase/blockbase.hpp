@@ -313,6 +313,7 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     void RemoveProducersDAM(eosio::name owner, std::vector<struct blockbase::producers> producers);
     void RemoveIPsDAM(eosio::name owner);
     void RemoveIPsDAM(eosio::name owner, std::vector<struct blockbase::producers> producers);
+    void RemoveHistVerDAM(eosio::name owner, std::vector<struct producers> producers);
     void DeleteCurrentProducerDAM(eosio::name owner, std::vector<struct producers> producersToRemove);
     void ReOpenCandidaturePhaseIfRequired(eosio::name owner);
     void ChangeContractStateDAM(struct blockbase::contractst states);
