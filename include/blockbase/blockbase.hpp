@@ -17,6 +17,7 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     const uint16_t MIN_CANDIDATURE_TIME_IN_SECONDS = 1;
     const uint16_t MIN_IP_SEND_TIME_IN_SECONDS = 1;
     const uint8_t MIN_REQUIRED_PRODUCERS = 1;
+    const uint32_t MIN_BLOCK_SIZE = 205;
 
     // Warning
     const uint8_t WARNING_TYPE_PUNISH = 0;

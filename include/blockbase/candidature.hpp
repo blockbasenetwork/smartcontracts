@@ -56,6 +56,7 @@
         if(info.ip_sending_phase_duration_in_seconds < MIN_IP_SEND_TIME_IN_SECONDS) return false; 
         if(info.ip_retrieval_phase_duration_in_seconds < MIN_IP_SEND_TIME_IN_SECONDS) return false;
         if(numberOfProducersRequired < MIN_REQUIRED_PRODUCERS) return false;
+        if(info.block_size_in_bytes <= MIN_BLOCK_SIZE) return false;
         if(info.min_payment_per_block_full_producers > info.max_payment_per_block_full_producers) return false;
         if(info.min_payment_per_block_history_producers > info.max_payment_per_block_history_producers) return false;
         if(info.min_payment_per_block_validator_producers > info.max_payment_per_block_validator_producers) return false;
