@@ -369,7 +369,7 @@
     auto state = _states.find(owner.value);
     auto candidateInSidechainToRemove = _candidates.find(producer.value);
 
-    check(state != _states.end() && state->has_chain_started == true && state->is_candidature_phase == true, "The chain is not in the candidature phase, please check the current state of the chain. \n");
+    check(state != _states.end() && state->has_chain_started == true && state->is_secret_sending_phase == false && state->is_ip_sending_phase == false && state->is_ip_retrieving_phase == false, "The chain is not in the candidature phase, please check the current state of the chain. \n");
     check(candidateInSidechainToRemove != _candidates.end(), "Candidate can't be removed. Candidate doesn't exist in the candidate list. \n");
 
     RemoveCandidateDAM(owner, candidateInSidechainToRemove->key);
