@@ -162,6 +162,8 @@
     check(eosio::current_block_time().to_time_point().sec_since_epoch() >= info->secret_sending_phase_end_date_in_seconds && info->secret_sending_phase_end_date_in_seconds != 0, "The secrect phase hasn't finished yet, please check the contract information for more details.");
 
     AddCandidatesWithReservedSeat(owner);
+    std::vector<struct blockbase::candidates> candidatesToClear = GetCandidatesToClear(owner);
+    RemoveCandidatesDAM(owner, candidatesToClear);
 
     auto producersInSidechainCount = std::distance(_producers.begin(), _producers.end());
     auto numberOfProducersRequired = info->number_of_validator_producers_required + info->number_of_history_producers_required + info->number_of_full_producers_required;
@@ -300,7 +302,7 @@
     stateIndex _states(_self, owner.value);
 
     auto state = _states.find(owner.value);
-    check(state != _states.end() && state->has_chain_started == true && state->is_ip_sending_phase == true, "The chain is not in the IP sending phase, please check the current state of the chain. \n");
+    check(state != _states.end() && state->has_chain_started == true && (state->is_ip_sending_phase == true || state->is_production_phase), "The chain is not in the IP sending phase, please check the current state of the chain. \n");
 
     ipsIndex _ips(_self, owner.value);
     auto ip = _ips.find(producer.value);
@@ -665,6 +667,7 @@
     verifysigIndex _verifysig(_self, owner.value);
     versionIndex _version(_self, owner.value);
     warningsIndex _warnings(_self, owner.value);
+    reservedseatIndex _reservedseats(_self, owner.value);
 
     RemoveProducersDAM(owner);
     RemoveIPsDAM(owner);
@@ -717,6 +720,10 @@
     auto itr11 = _warnings.begin();
     while (itr11 != _warnings.end())
         itr11 = _warnings.erase(itr11);
+
+    auto itr12 = _reservedseats.begin();
+    while (itr12 != _reservedseats.end())
+        itr12 = _reservedseats.erase(itr12);
 
     eosio::print("Service Ended. \n");
 }

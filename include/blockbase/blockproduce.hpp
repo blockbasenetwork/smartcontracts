@@ -138,7 +138,7 @@ void blockbase::ReOpenCandidaturePhaseIfRequired(eosio::name owner){
     auto numberOfProducersRequired = info->number_of_validator_producers_required + info->number_of_history_producers_required + info->number_of_full_producers_required;
     uint8_t producersInSidechainCount = std::distance(_producers.begin(), _producers.end());
 
-    if (producersInSidechainCount < numberOfProducersRequired) {
+    if (state->is_production_phase && producersInSidechainCount < numberOfProducersRequired) {
         if (producersInSidechainCount < ceil(numberOfProducersRequired * MIN_PRODUCERS_IN_CHAIN_THRESHOLD)) {
             ChangeContractStateDAM({owner, true, false, true, false, false, false, false});
             eosio::print("  Number of producers in the sidechain is below the minimum threshold, production stopped and the candidature phase is starting... \n");
@@ -163,4 +163,14 @@ void blockbase::RemoveBlockCountDAM(eosio::name owner, std::vector<struct produc
         }
     }
   
+}
+
+void blockbase::RemoveHistVerDAM(eosio::name owner, std::vector<struct producers> producers) {
+    histvalIndex _histval(_self, owner.value);
+    for(auto producerToRemove : producers) {
+        auto producerHistValToRemove = _histval.find(producerToRemove.key.value);
+        if(_histval.end() != producerHistValToRemove) {
+            _histval.erase(producerHistValToRemove);
+        }
+    }
 }

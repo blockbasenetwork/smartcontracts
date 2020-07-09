@@ -77,11 +77,14 @@
 
         if (numberOfProducersRequired == 0) return selectedCandidateList;
 
-        for(auto candidate : _candidates){
-            if(candidate.producer_type == producerType && IsSecretValid(owner, candidate.key, candidate.secret)) selectedCandidateList.push_back(candidate);
-        }
         for(auto producer : _producers){
             if(producer.producer_type == producerType) producersOfSelectedType.push_back(producer);
+        }
+
+        if (producersOfSelectedType.size() == numberOfProducersRequired) return selectedCandidateList;
+
+        for(auto candidate : _candidates){
+            if(candidate.producer_type == producerType && IsSecretValid(owner, candidate.key, candidate.secret)) selectedCandidateList.push_back(candidate);
         }
 
         if (selectedCandidateList.size() == 0) return selectedCandidateList;
@@ -146,7 +149,6 @@
                 AddProducerDAM(owner, candidate);
                 UpdateWarningTimeInNewProducer(owner, candidate.key);
                 AddPublicKeyDAM(owner, candidate.key, candidate.public_key);
-                RemoveCandidateDAM(owner, candidate.key);
             }   
         }
     }
@@ -287,4 +289,30 @@
 
         eosio::print("Candidate removed. \n");  
     }
+
+    void blockbase::RemoveCandidatesDAM(eosio::name owner, std::vector<struct blockbase::candidates> candidates) {
+        candidatesIndex _candidates(_self, owner.value);
+
+        auto itr = candidates.begin();
+        while (itr != candidates.end()) {	
+            auto candidateToRemove = _candidates.find(itr -> key.value);	
+            _candidates.erase(candidateToRemove);
+            itr = candidates.erase(itr);
+        }
+    }
+
+    std::vector<struct blockbase::candidates> blockbase::GetCandidatesToClear(eosio::name owner) {
+        std::vector<struct blockbase::candidates> candidatesToRemove;
+
+        candidatesIndex _candidates(_self, owner.value);
+        producersIndex _producers(_self, owner.value);
+        for (auto candidate : _candidates) {
+            auto producerFound = _producers.find(candidate.key.value);
+            if (producerFound != _producers.end()) {
+                candidatesToRemove.push_back(candidate);
+            }
+        }
+
+        return candidatesToRemove;
+    };
 #pragma endregion
