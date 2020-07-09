@@ -584,6 +584,7 @@
     auto producerInTable = _producers.find(producer.value);
     check(producerInTable != _producers.end(), "Not a producer in this chain to be able to run action");
     check(histval != _histval.end(), "No validation request for this producer inserted");
+    check(std::find(histval->signed_producers.begin(), histval->signed_producers.end(), producer) == histval->signed_producers.end(), "Producer already inserted signature");
     check(std::find(histval->verify_signatures.begin(), histval->verify_signatures.end(), verifySignature) == histval->verify_signatures.end(), "Signature already inserted");
 
     _histval.modify(histval, producer, [&](auto &historyValidationI) {
