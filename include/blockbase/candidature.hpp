@@ -25,6 +25,31 @@
         return publicKey.size() == 53 && publicKey.substr(0,3) == "EOS";
     }
 
+    bool blockbase::AreThereEmptySlotsForCandidateTypes(eosio::name owner) {
+        producersIndex _producers(_self, owner.value);
+        candidatesIndex _candidates(_self, owner.value);
+        infoIndex _infos(_self, owner.value);
+        auto info = _infos.get(owner.value);
+
+        int32_t numberOfValidatorProducers = 0;
+        int32_t numberOfHistoryProducers = 0;
+        int32_t numberOfFullProducers = 0;
+
+        for(auto producer : _producers){
+            if(producer.producer_type == 1) numberOfValidatorProducers += 1;
+            if(producer.producer_type == 2) numberOfHistoryProducers += 1;
+            if(producer.producer_type == 3) numberOfFullProducers += 1;
+        }
+
+        for(auto candidate : _candidates){
+            if(candidate.producer_type == 1 && info.number_of_validator_producers_required > numberOfValidatorProducers) return true;
+            if(candidate.producer_type == 2 && info.number_of_history_producers_required > numberOfHistoryProducers) return true;
+            if(candidate.producer_type == 3 && info.number_of_full_producers_required > numberOfFullProducers) return true;
+        }
+
+        return false;
+    }
+
     bool blockbase::IsConfigurationValid(blockbase::contractinfo info) {
         auto numberOfProducersRequired = info.number_of_validator_producers_required + info.number_of_history_producers_required + info.number_of_full_producers_required;
         if(info.candidature_phase_duration_in_seconds < MIN_CANDIDATURE_TIME_IN_SECONDS) return false;
