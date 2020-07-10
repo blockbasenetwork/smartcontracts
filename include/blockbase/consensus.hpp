@@ -6,7 +6,7 @@ void blockbase::RunSettlement(eosio::name owner) {
     warningsIndex _warnings(_self, owner.value);
     uint8_t producedBlocks = 0, failedBlocks = 0;
     std::vector<blockbase::producers> readyProducers = blockbase::GetReadyProducers(owner);
-    
+    int64_t totalPaymentThisSettlement = 0;
     for (struct blockbase::producers &producer : readyProducers) {
         auto producerBlockCountTable = _blockscount.find(producer.key.value);
         if (producerBlockCountTable != _blockscount.end()) {
@@ -17,10 +17,13 @@ void blockbase::RunSettlement(eosio::name owner) {
         
         auto totalProducerPaymentPerBlockMined = CalculateRewardBasedOnBlockSize(owner,producer);
         auto producerWarningId = GetSpecificProducerWarningId(owner, producer.key, WARNING_TYPE_PUNISH);
-        if(producerWarningId == -1 && producedBlocks > 0) RewardProducerDAM(owner, producer.key, totalProducerPaymentPerBlockMined);
+        if(producerWarningId == -1 && producedBlocks > 0) { 
+            RewardProducerDAM(owner, producer.key, totalProducerPaymentPerBlockMined);
+            totalPaymentThisSettlement += totalProducerPaymentPerBlockMined;
+         }
     }
     ResetBlockCountDAM(owner);
-    IsRequesterStakeEnough(owner);
+    IsRequesterStakeEnough(owner, totalPaymentThisSettlement);
     CheckHistoryValidation(owner);
     WarningsManage(owner);
     RemoveProducerWithWorktimeFinished(owner);
@@ -40,15 +43,16 @@ void blockbase::RemoveBadProducers(eosio::name owner) {
     }
 }
 
-void blockbase::IsRequesterStakeEnough(eosio::name owner) {
+void blockbase::IsRequesterStakeEnough(eosio::name owner, int64_t totalPaymentThisSettlement) {
     infoIndex _infos(_self, owner.value);
     auto info = _infos.find(owner.value);
 
     asset clientStake = blockbasetoken::get_stake(BLOCKBASE_TOKEN, owner, owner);
+    int64_t clientStakeAmountUpdated = clientStake.amount - totalPaymentThisSettlement;
     auto MaxPaymentPerBlock = info->max_payment_per_block_full_producers;
     if(MaxPaymentPerBlock < info->max_payment_per_block_history_producers) MaxPaymentPerBlock = info->max_payment_per_block_history_producers;
     if(MaxPaymentPerBlock < info->max_payment_per_block_validator_producers) MaxPaymentPerBlock = info->max_payment_per_block_validator_producers;
-    if (clientStake.amount < (MaxPaymentPerBlock * (info->num_blocks_between_settlements))) {
+    if (clientStakeAmountUpdated < (MaxPaymentPerBlock * (info->num_blocks_between_settlements))) {
         ChangeContractStateDAM({owner, true, false, false, false, false, false, false});
         RemoveBlockCountDAM(owner);
         RemoveIPsDAM(owner);
@@ -191,11 +195,11 @@ void blockbase::WarningsManage(eosio::name owner) {
     std::map<uint64_t, eosio::name> warningIdProducerNameMapToClear;
     for(auto warning : _warnings) {
         // Case the warning of the producer stays 5 days with the same warning the producer is flagged to be banned
-        if(warning.producer_exit_date_in_seconds == 0 && eosio::current_block_time().to_time_point().sec_since_epoch() - warning.warning_creation_date_in_seconds >= 432000) { // 432000 is 5 days in seconds
+        if(warning.producer_exit_date_in_seconds == 0 && eosio::current_block_time().to_time_point().sec_since_epoch() - warning.warning_creation_date_in_seconds >= 500) { // 432000 is 5 days in seconds
             AddWarningDAM(owner, warning.producer, WARNING_TYPE_PUNISH);
         
         // Case 20 days has pass since the producer as exit the sidechain the warning is cleared.
-        } else if(warning.producer_exit_date_in_seconds != 0 && eosio::current_block_time().to_time_point().sec_since_epoch() - warning.producer_exit_date_in_seconds >= 1728000) { // 1728000 is 20 days in seconds
+        } else if(warning.producer_exit_date_in_seconds != 0 && eosio::current_block_time().to_time_point().sec_since_epoch() - warning.producer_exit_date_in_seconds >= 600) { // 1728000 is 20 days in seconds
             warningIdProducerNameMapToClear.insert(std::pair<uint64_t, eosio::name>(warning.key, warning.producer));
         }
     }
