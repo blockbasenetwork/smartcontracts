@@ -230,7 +230,7 @@
     }
 
     ChangeContractStateDAM({owner, true, false, false, false, false, true, state->is_production_phase});
-    ResetBlockCountDAM(owner);
+    AddBlockCountDAM(owner);
     SetEndDateDAM(owner, RECEIVE_TIME_ID);
     eosio::print("Start receive time. \n");
 }
