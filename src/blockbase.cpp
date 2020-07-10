@@ -132,7 +132,7 @@
     
     auto producersAndCandidatesInSidechainCount = numberOfCandidates + numberOfProducersInChain;
     
-    if (numberOfCandidates == 0 || producersAndCandidatesInSidechainCount < ceil(numberOfProducersRequired * MIN_PRODUCERS_TO_PRODUCE_THRESHOLD)) {
+    if (numberOfCandidates == 0 || !AreThereEmptySlotsForCandidateTypes(owner) || producersAndCandidatesInSidechainCount < ceil(numberOfProducersRequired * MIN_PRODUCERS_TO_PRODUCE_THRESHOLD)) {
         eosio::print("Starting candidature phase again... \n");
         SetEndDateDAM(owner, CANDIDATURE_TIME_ID);
         ChangeContractStateDAM({owner, true, false, true, false, false, false, state->is_production_phase});
