@@ -2,6 +2,7 @@ void blockbase::EvaluateProducer(eosio::name owner, eosio::name producer, uint16
     warningsIndex _warnings(_self, owner.value);
     auto producerWarningId = GetSpecificProducerWarningId(owner, producer, WARNING_TYPE_BLOCKS_FAILED);
     uint16_t totalBlocks = producedBlocks + failedBlocks;
+    if (totalBlocks == 0) return;
     uint16_t totalFailedBlocksPermited = ceil(MIN_BLOCKS_THRESHOLD_FOR_PUNISH * totalBlocks);
     if(producerWarningId == -1 && failedBlocks >= totalFailedBlocksPermited) 
         AddWarningDAM(owner, producer, WARNING_TYPE_BLOCKS_FAILED);

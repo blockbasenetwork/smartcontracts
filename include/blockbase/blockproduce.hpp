@@ -128,6 +128,21 @@ void blockbase::ResetBlockCountDAM(eosio::name owner) {
     }
 }
 
+void blockbase::AddBlockCountDAM(eosio::name owner) {
+    producersIndex _producers(_self, owner.value);
+    blockscountIndex _blockscount(_self, owner.value);
+    for(auto producer : _producers) {
+        auto producerBlockCount = _blockscount.find(producer.key.value);
+        if(producerBlockCount == _blockscount.end()){
+            _blockscount.emplace(owner, [&](auto &blockCountI){
+                blockCountI.key = producer.key;
+                blockCountI.num_blocks_failed = 0;
+                blockCountI.num_blocks_produced = 0;
+            });
+        }
+    }
+}
+
 void blockbase::ReOpenCandidaturePhaseIfRequired(eosio::name owner){
     stateIndex _states(_self, owner.value);
     producersIndex _producers(_self, owner.value);

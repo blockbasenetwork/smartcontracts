@@ -309,6 +309,7 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     void RemoveBlockCountDAM(eosio::name owner, std::vector<struct producers> producers);
     void SetEndDateDAM(eosio::name owner, uint8_t type);
     void ResetBlockCountDAM(eosio::name owner);
+    void AddBlockCountDAM(eosio::name owner);
     void UpdateContractInfoDAM(eosio::name owner, blockbase::contractinfo infoJson);
     void RemoveBlockCountDAM(eosio::name owner);
     void RemoveProducersDAM(eosio::name owner);
