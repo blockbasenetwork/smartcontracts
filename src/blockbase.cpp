@@ -80,9 +80,12 @@
 
     if (!reservedSeats.empty()) {
         for (auto seat : reservedSeats) {
-            _reserverseats.emplace(owner, [&](auto &reservedSeatI) {
-                reservedSeatI.key = seat;
-            });
+            auto reservedSeat = _reserverseats.find(seat.value);
+            if(reservedSeat == _reserverseats.end() && is_account(seat)) { 
+                _reserverseats.emplace(owner, [&](auto &reservedSeatI) {
+                    reservedSeatI.key = seat;
+                });
+            }
         }
     }
 
@@ -638,6 +641,44 @@
         versigI.verify_signature = verifySignature;
         versigI.packed_transaction = packedTransaction;
     });
+}
+
+[[eosio::action]] void blockbase::addreseats(eosio::name owner, std::vector<eosio::name> seatsToAdd) {
+    require_auth(owner);
+    blacklistIndex _blacklists(_self, owner.value);
+    reservedseatIndex _reservedseats(_self, owner.value);
+    stateIndex _states(_self, owner.value);
+
+    auto chainState = _states.find(owner.value);
+
+    check(!seatsToAdd.empty(), "No account names to submited to add to the sidechain reserved seats");
+    check(chainState != _states.end() && chainState->has_chain_started == true && chainState->is_secret_sending_phase == false && chainState->is_ip_sending_phase == false && chainState->is_ip_retrieving_phase == false, "Chain is not in the right state. Try again when its candidature time or production time");
+    
+    for(auto seatToAdd : seatsToAdd) {
+        auto blacklist = _blacklists.find(seatToAdd.value);
+        auto reservedSeat = _reservedseats.find(seatToAdd.value);
+        if(blacklist == _blacklists.end() && reservedSeat == _reservedseats.end() && is_account(seatToAdd)) {
+            _reservedseats.emplace(owner, [&](auto &reservedSeatI){
+                reservedSeatI.key = seatToAdd;
+            });
+        }
+    }
+}
+
+[[eosio::action]] void blockbase::rreservseats(eosio::name owner, std::vector<eosio::name> seatsToRemove) {
+    require_auth(owner);
+    stateIndex _states(_self, owner.value);
+    reservedseatIndex _reservedseats(_self, owner.value);
+    
+    auto chainState = _states.find(owner.value);
+    check(!seatsToRemove.empty(), "No account names to submit to remove from sidechain reserved seats");
+    check(chainState != _states.end() && chainState->has_chain_started == true && chainState->is_secret_sending_phase == false && chainState->is_ip_sending_phase == false && chainState->is_ip_retrieving_phase == false, "Chain is not in the right state. Try again when its candidature time or production time");
+    
+    for(auto seatToRemove : seatsToRemove) {
+        auto reservedSeat = _reservedseats.find(seatToRemove.value);
+        if(reservedSeat != _reservedseats.end() && is_account(seatToRemove))  
+            _reservedseats.erase(reservedSeat); 
+    }
 }
 
 [[eosio::action]] void blockbase::exitrequest(eosio::name owner, eosio::name account) {
