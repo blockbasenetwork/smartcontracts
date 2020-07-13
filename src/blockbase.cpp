@@ -576,7 +576,7 @@
     });
 }
 
-[[eosio::action]] void blockbase::addhistsig(eosio::name owner, eosio::name producer, eosio::name producerToValidade, std::string verifySignature) {
+[[eosio::action]] void blockbase::addhistsig(eosio::name owner, eosio::name producer, eosio::name producerToValidade, std::string verifySignature, std::vector<char> packedTransaction) {
     require_auth(producer);
     histvalIndex _histval(_self, owner.value);
     producersIndex _producers(_self, owner.value);
@@ -584,6 +584,7 @@
     auto producerInTable = _producers.find(producer.value);
     check(producerInTable != _producers.end(), "Not a producer in this chain to be able to run action");
     check(histval != _histval.end(), "No validation request for this producer inserted");
+    check(std::equal(histval->packed_transaction.begin(), histval->packed_transaction.end(), packedTransaction.begin()), "Packed transaction doesn't match history validation entry");
     check(std::find(histval->signed_producers.begin(), histval->signed_producers.end(), producer) == histval->signed_producers.end(), "Producer already inserted signature");
     check(std::find(histval->verify_signatures.begin(), histval->verify_signatures.end(), verifySignature) == histval->verify_signatures.end(), "Signature already inserted");
 
