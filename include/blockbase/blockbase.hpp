@@ -299,7 +299,7 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     void UpdateWarningTimeInNewProducer(eosio::name owner, eosio::name producer);
     void WarningsManage(eosio::name owner);
     void RemoveAllProducerWarningsDAM(eosio::name owner, std::vector<struct producers> producers);
-    void IsRequesterStakeEnough(eosio::name owner, int64_t totalPaymentThisSettlement);
+    bool IsRequesterStakeEnough(eosio::name owner);
     void RewardProducerDAM(eosio::name owner, eosio::name producer, uint64_t quantity);
     void UpdateBlockCount(eosio::name owner, eosio::name producer);
     void UpdateCurrentProducerDAM(eosio::name owner, eosio::name nextProducer);

@@ -2,7 +2,6 @@
 void blockbase::RunSettlement(eosio::name owner) {
     infoIndex _infos(_self, owner.value);
     blockscountIndex _blockscount(_self, owner.value);
-    producersIndex _producers(_self, owner.value);
     warningsIndex _warnings(_self, owner.value);
     uint8_t producedBlocks = 0, failedBlocks = 0;
     std::vector<blockbase::producers> readyProducers = blockbase::GetReadyProducers(owner);
@@ -23,7 +22,6 @@ void blockbase::RunSettlement(eosio::name owner) {
          }
     }
     ResetBlockCountDAM(owner);
-    IsRequesterStakeEnough(owner, totalPaymentThisSettlement);
     CheckHistoryValidation(owner);
     WarningsManage(owner);
     RemoveProducerWithWorktimeFinished(owner);
@@ -43,23 +41,29 @@ void blockbase::RemoveBadProducers(eosio::name owner) {
     }
 }
 
-void blockbase::IsRequesterStakeEnough(eosio::name owner, int64_t totalPaymentThisSettlement) {
+bool blockbase::IsRequesterStakeEnough(eosio::name owner) {
     infoIndex _infos(_self, owner.value);
     auto info = _infos.find(owner.value);
+    std::vector<blockbase::producers> readyProducers = blockbase::GetReadyProducers(owner);
+    int64_t totalRewardsLeftToGet = 0;
+    for (struct blockbase::producers &producer : readyProducers) {
+        rewardsIndex _rewards(_self, producer.key.value);
+        auto rewardsForProducer = _rewards.find(owner.value);
+        if(rewardsForProducer != _rewards.end()) {
+            totalRewardsLeftToGet += rewardsForProducer->reward;
+        }
+    }
 
     asset clientStake = blockbasetoken::get_stake(BLOCKBASE_TOKEN, owner, owner);
-    int64_t clientStakeAmountUpdated = clientStake.amount - totalPaymentThisSettlement;
+    int64_t clientStakeAmountUpdated = clientStake.amount - totalRewardsLeftToGet;
     auto MaxPaymentPerBlock = info->max_payment_per_block_full_producers;
     if(MaxPaymentPerBlock < info->max_payment_per_block_history_producers) MaxPaymentPerBlock = info->max_payment_per_block_history_producers;
     if(MaxPaymentPerBlock < info->max_payment_per_block_validator_producers) MaxPaymentPerBlock = info->max_payment_per_block_validator_producers;
     if (clientStakeAmountUpdated < (MaxPaymentPerBlock * (info->num_blocks_between_settlements))) {
-        ChangeContractStateDAM({owner, true, false, false, false, false, false, false});
-        RemoveBlockCountDAM(owner);
-        RemoveIPsDAM(owner);
-        RemoveProducersDAM(owner);
-        eosio::print("  No stake left for next payment, so all producers left the chain without penaltis! \n");
-        eosio::print("  Configure the chain again. \n");
+        return false;
     }
+
+    return true;
 }
 
 

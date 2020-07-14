@@ -476,6 +476,11 @@
             RunSettlement(owner);
         }
 
+        if (blockCountForComputation == 1)
+        {
+            check(IsRequesterStakeEnough(owner), "Not enough stake to continue running chain");
+        }
+
         readyProducerslist = GetReadyProducers(owner); // The ready producers list can change in the settlement.
 
         if (readyProducerslist.size() > 0) {
