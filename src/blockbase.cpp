@@ -217,6 +217,9 @@
     if (producersWhoFailedToSendIPsList.size() > 0) {
         RemoveIPsDAM(owner, producersWhoFailedToSendIPsList);
         RemoveProducersDAM(owner, producersWhoFailedToSendIPsList);
+        DeleteCurrentProducerDAM(owner,producersWhoFailedToSendIPsList);
+        RemoveBlockCountDAM(owner,producersWhoFailedToSendIPsList);
+        ClearWarningDAM(owner,producersWhoFailedToSendIPsList);
         auto numberOfProducersRequired = info->number_of_validator_producers_required + info->number_of_history_producers_required + info->number_of_full_producers_required;
 
         if (std::distance(_producers.begin(), _producers.end()) < ceil(numberOfProducersRequired * MIN_PRODUCERS_IN_CHAIN_THRESHOLD)) {
@@ -486,8 +489,10 @@
         if (readyProducerslist.size() > 0) {
             struct blockbase::producers nextproducer = GetNextProducer(owner);
 
-            if ((currentProducer->production_start_date_in_seconds + info->block_time_in_seconds) <= eosio::current_block_time().to_time_point().sec_since_epoch()) {
-                UpdateBlockCount(owner, currentProducer->producer);
+            if (currentProducer == _currentprods.end() || (currentProducer->production_start_date_in_seconds + info->block_time_in_seconds) <= eosio::current_block_time().to_time_point().sec_since_epoch()) {
+                if (currentProducer != _currentprods.end()) {
+                    UpdateBlockCount(owner, currentProducer->producer);
+                }
                 
                 auto deleteitr = _verifysig.begin();
                 while (deleteitr != _verifysig.end())

@@ -296,6 +296,7 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     void EvaluateProducer(eosio::name owner, eosio::name producer, uint16_t failedBlocks, uint16_t producedBlocks);
     void AddWarningDAM(eosio::name owner, eosio::name producer, uint8_t warningType);
     void ClearWarningDAM(eosio::name owner, eosio::name producer, uint64_t warningId);
+    void ClearWarningDAM(eosio::name owner, std::vector<struct blockbase::producers> producers);
     void UpdateWarningTimeInNewProducer(eosio::name owner, eosio::name producer);
     void WarningsManage(eosio::name owner);
     void RemoveAllProducerWarningsDAM(eosio::name owner, std::vector<struct producers> producers);
