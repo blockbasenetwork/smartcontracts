@@ -700,9 +700,25 @@
     check(producerInTable -> work_duration_in_seconds == std::numeric_limits<uint32_t>::max(), "This producer has already submitted an exit request");
     
     _producers.modify(producerInTable, account, [&](auto &producerI) {
-        producerI.work_duration_in_seconds = eosio::current_block_time().to_time_point().sec_since_epoch() + 86400; // 86400 is one day in seconds.
+        producerI.work_duration_in_seconds = eosio::current_block_time().to_time_point().sec_since_epoch() + ONE_DAY_IN_SECONDS;
     });
-   
+}
+
+[[eosio::action]] void blockbase::alterconfig(eosio::name owner, blockbase::configchange infoChangeJson) {
+    require_auth(owner);
+
+    stateIndex _states(_self, owner.value);
+    producersIndex _producers(_self, owner.value);
+    reservedseatIndex _reserverseats(_self, owner.value);
+    auto state = _states.find(owner.value);
+    auto numberOfProducersRequired = infoChangeJson.number_of_validator_producers_required + infoChangeJson.number_of_history_producers_required + infoChangeJson.number_of_full_producers_required;
+
+    check(infoChangeJson.key.value == owner.value, "Account isn't the same account as the sidechain owner.");
+
+    check(state != _states.end() && state->has_chain_started == true && state->is_configuration_phase == false && state->is_secret_sending_phase == false && state->is_ip_sending_phase == false && state->is_ip_retrieving_phase == false , "This sidechain is in a state that doesn't allow configuration changes");
+    check(IsConfigurationChangeValid(infoChangeJson), "The configuration changes inserted is incorrect or not valid, please insert it again.");
+
+    UpdateChangeConfigDAM(owner, infoChangeJson);
 }
 
 [[eosio::action]] void blockbase::endservice(eosio::name owner) {

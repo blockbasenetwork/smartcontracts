@@ -25,7 +25,58 @@ void blockbase::RunSettlement(eosio::name owner) {
     CheckHistoryValidation(owner);
     WarningsManage(owner);
     RemoveProducerWithWorktimeFinished(owner);
+    UpdateConfigurations(owner);
+    RemoveExtraProducers(owner);
     eosio::print("Computation has ended. \n");
+}
+
+void blockbase::UpdateConfigurations(eosio::name owner) {
+    configchgIndex _configchange(_self, owner.value);
+    auto changeInfo = _configchange.find(owner.value);
+    if(changeInfo == _configchange.end()) return;
+    if(changeInfo->config_changed_time_in_seconds > (eosio::current_block_time().to_time_point().sec_since_epoch() - ONE_DAY_IN_SECONDS)) return;
+
+    infoIndex _infos(_self, owner.value);
+    auto info = _infos.find(owner.value);
+
+    if (info != _infos.end()) {
+        _infos.modify(info, owner, [&](auto &infoI) {
+            infoI.max_payment_per_block_validator_producers = changeInfo->max_payment_per_block_validator_producers;
+            infoI.max_payment_per_block_history_producers = changeInfo->max_payment_per_block_history_producers;
+            infoI.max_payment_per_block_full_producers = changeInfo->max_payment_per_block_full_producers;
+            infoI.min_payment_per_block_validator_producers = changeInfo->min_payment_per_block_validator_producers;
+            infoI.min_payment_per_block_history_producers = changeInfo->min_payment_per_block_history_producers;
+            infoI.min_payment_per_block_full_producers = changeInfo->min_payment_per_block_full_producers;
+            infoI.min_candidature_stake = changeInfo->min_candidature_stake;
+            infoI.number_of_validator_producers_required = changeInfo->number_of_validator_producers_required;
+            infoI.number_of_history_producers_required = changeInfo->number_of_history_producers_required;
+            infoI.number_of_full_producers_required = changeInfo->number_of_full_producers_required;
+            infoI.block_time_in_seconds = changeInfo->block_time_in_seconds;
+            infoI.num_blocks_between_settlements = changeInfo->num_blocks_between_settlements;
+            infoI.block_size_in_bytes = changeInfo->block_size_in_bytes;
+        });
+    }
+}
+
+void blockbase::RemoveExtraProducers(eosio::name owner) {
+    infoIndex _infos(_self, owner.value);
+    producersIndex _producers(_self, owner.value);
+    auto info = _infos.find(owner.value);
+
+    auto producersInSidechainCount = std::distance(_producers.begin(), _producers.end());
+    auto numberOfProducersRequired = info->number_of_validator_producers_required + info->number_of_history_producers_required + info->number_of_full_producers_required;
+
+    if (numberOfProducersRequired >= producersInSidechainCount) return;
+
+    std::vector<struct producers> producersToRemove = GetExtraProducersWithLowestStake(owner, producersInSidechainCount - numberOfProducersRequired);
+    if(producersToRemove.size() > 0){
+        RemoveIPsDAM(owner, producersToRemove);
+        RemoveProducersDAM(owner, producersToRemove);
+        DeleteCurrentProducerDAM(owner,producersToRemove);
+        RemoveBlockCountDAM(owner,producersToRemove);
+        RemoveAllProducerWarningsDAM(owner, producersToRemove);
+        RemoveHistVerDAM(owner, producersToRemove);
+    }
 }
 
 void blockbase::RemoveBadProducers(eosio::name owner) {
@@ -231,4 +282,36 @@ int64_t blockbase::GetSpecificProducerWarningId(eosio::name owner,eosio::name pr
     }
     return -1;
 }
+
+std::vector<struct blockbase::producers> blockbase::GetExtraProducersWithLowestStake(eosio::name owner, uint16_t numberOfProducersToRemove) {
+    producersIndex _producers(_self, owner.value);
+    std::vector<struct blockbase::producers> producers;
+    std::vector<struct blockbase::producers> producersToRemove;
+    for(auto& producer : _producers) {
+        producers.push_back(producer);
+    }
+
+    struct StakeComparator{
+        explicit StakeComparator(eosio::name sidechain_) : sidechain(sidechain_) {}
+
+        bool operator()(blockbase::producers prod1, blockbase::producers prod2) const{
+            eosio::asset cstake1 = blockbasetoken::get_stake(BLOCKBASE_TOKEN, sidechain, prod1.key);
+            eosio::asset cstake2 = blockbasetoken::get_stake(BLOCKBASE_TOKEN, sidechain, prod2.key);
+            return cstake1 < cstake2;
+        }
+        eosio::name sidechain;
+    };
+
+    std::sort(producers.begin(), producers.end(), StakeComparator(_self));
+
+    auto i = 0;
+    for(auto producer : producers) {
+        if (i >= numberOfProducersToRemove) break;
+        producersToRemove.push_back(producer);
+        i++;
+    }
+
+    return producersToRemove;
+}
+
 #pragma endregion

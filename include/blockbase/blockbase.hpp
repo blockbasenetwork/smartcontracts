@@ -34,6 +34,9 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     const double MIN_PRODUCERS_TO_PRODUCE_THRESHOLD = 0.70;
     const double MIN_BLOCKS_THRESHOLD_FOR_PUNISH = 0.80;
 
+    // const helpers
+    const uint32_t ONE_DAY_IN_SECONDS = 86400;
+
     //TODO - change to enum
     const uint8_t CHANGE_PRODUCER_ID = 0;
     const uint8_t CANDIDATURE_TIME_ID = 1;
@@ -155,6 +158,27 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     };
     typedef eosio::multi_index<eosio::name("contractinfo"), contractinfo> infoIndex;
 
+    // Configuration change table
+    struct [[eosio::table]] configchange {
+        eosio::name key;
+        uint64_t max_payment_per_block_validator_producers;
+        uint64_t max_payment_per_block_history_producers;
+        uint64_t max_payment_per_block_full_producers;
+        uint64_t min_payment_per_block_validator_producers;
+        uint64_t min_payment_per_block_history_producers;
+        uint64_t min_payment_per_block_full_producers;
+        uint64_t min_candidature_stake;
+        uint32_t number_of_validator_producers_required;
+        uint32_t number_of_history_producers_required;
+        uint32_t number_of_full_producers_required;
+        uint32_t block_time_in_seconds;
+        uint32_t num_blocks_between_settlements;
+        uint64_t block_size_in_bytes;
+        uint64_t config_changed_time_in_seconds;
+        uint64_t primary_key() const { return key.value; }
+    };
+    typedef eosio::multi_index<eosio::name("configchange"), configchange> configchgIndex;
+
     // BlackList Table
     struct [[eosio::table]] blacklist {
         eosio::name key;
@@ -271,6 +295,7 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     [[eosio::action]] void exitrequest(eosio::name owner, eosio::name account);
     [[eosio::action]] void addreseats(eosio::name owner, std::vector<eosio::name> seatsToAdd);
     [[eosio::action]] void rreservseats(eosio::name owner, std::vector<eosio::name> seatsToRemove);
+    [[eosio::action]] void alterconfig(eosio::name owner, blockbase::configchange infoChangeJson);
 
     std::map<eosio::name, asset> static GetProducersToPunishInfo(const name &contract, const name &owner);
     static uint64_t GetProducerRewardAmount(eosio::name contract, eosio::name claimer);
@@ -283,6 +308,7 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     bool HasBlockBeenProduced(eosio::name owner, eosio::name producer);
     bool IsPublicKeyValid(eosio::name owner, std::string publicKey);
     bool IsConfigurationValid(blockbase::contractinfo info);
+    bool IsConfigurationChangeValid(blockbase::configchange info);
     bool IsCandidateValid(eosio::name owner, eosio::name producer);
     bool IsCandidaturePhase(eosio::name owner);
     bool IsTimestampValid(eosio::name owner, blockheaders block);
@@ -314,6 +340,7 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     void ResetBlockCountDAM(eosio::name owner);
     void AddBlockCountDAM(eosio::name owner);
     void UpdateContractInfoDAM(eosio::name owner, blockbase::contractinfo infoJson);
+    void UpdateChangeConfigDAM(eosio::name owner, blockbase::configchange infoChangeJson);
     void RemoveBlockCountDAM(eosio::name owner);
     void RemoveProducersDAM(eosio::name owner);
     void RemoveProducersDAM(eosio::name owner, std::vector<struct blockbase::producers> producers);
@@ -326,6 +353,8 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     void RemoveCandidateDAM(eosio::name owner, eosio::name candidate);
     void RemoveCandidatesDAM(eosio::name owner, std::vector<struct blockbase::candidates> candidates);
     void SoftwareVersionDAM(eosio::name owner, uint32_t softwareVersion);
+    void UpdateConfigurations(eosio::name owner);
+    void RemoveExtraProducers(eosio::name owner);
     uint8_t CalculateNumberOfIPsRequired(float numberOfProducers);
     uint8_t CalculateMultiSigThreshold(uint8_t producersNumber);
     uint64_t CalculateRewardBasedOnBlockSize(eosio::name owner, struct blockbase::producers producer);
@@ -341,4 +370,5 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     void RemoveProducerWithWorktimeFinished(eosio::name owner);
     void CheckHistoryValidation(eosio::name owner);
     std::vector<struct blockbase::candidates> GetCandidatesToClear(eosio::name owner);
+    std::vector<struct blockbase::producers> GetExtraProducersWithLowestStake(eosio::name owner, uint16_t numberOfProducersToRemove);
 };
