@@ -56,6 +56,8 @@ void blockbase::UpdateConfigurations(eosio::name owner) {
             infoI.block_size_in_bytes = changeInfo->block_size_in_bytes;
         });
     }
+
+    _configchange.erase(changeInfo);
 }
 
 void blockbase::RemoveExtraProducers(eosio::name owner) {
