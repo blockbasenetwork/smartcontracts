@@ -293,27 +293,7 @@ std::vector<struct blockbase::producers> blockbase::GetExtraProducersWithLowestS
         producers.push_back(producer);
     }
 
-    struct StakeComparator{
-        explicit StakeComparator(eosio::name sidechain_) : sidechain(sidechain_) {}
-
-        bool operator()(blockbase::producers prod1, blockbase::producers prod2) const{
-            eosio::asset cstake1 = blockbasetoken::get_stake(BLOCKBASE_TOKEN, sidechain, prod1.key);
-            eosio::asset cstake2 = blockbasetoken::get_stake(BLOCKBASE_TOKEN, sidechain, prod2.key);
-            return cstake1 < cstake2;
-        }
-        eosio::name sidechain;
-    };
-
-    std::sort(producers.begin(), producers.end(), StakeComparator(_self));
-
-    auto i = 0;
-    for(auto producer : producers) {
-        if (i >= numberOfProducersToRemove) break;
-        producersToRemove.push_back(producer);
-        i++;
-    }
-
-    return producersToRemove;
+    return producers;
 }
 
 #pragma endregion
