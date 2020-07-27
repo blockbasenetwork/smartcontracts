@@ -370,5 +370,5 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     void RemoveProducerWithWorktimeFinished(eosio::name owner);
     void CheckHistoryValidation(eosio::name owner);
     std::vector<struct blockbase::candidates> GetCandidatesToClear(eosio::name owner);
-    std::vector<struct blockbase::producers> GetExtraProducersWithLowestStake(eosio::name owner, uint16_t numberOfProducersToRemove);
+    std::vector<struct blockbase::producers> GetAllProducersToRemove(eosio::name owner, uint16_t numberOfProducersToRemove);
 };

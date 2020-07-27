@@ -70,7 +70,7 @@ void blockbase::RemoveExtraProducers(eosio::name owner) {
 
     if (numberOfProducersRequired >= producersInSidechainCount) return;
 
-    std::vector<struct producers> producersToRemove = GetExtraProducersWithLowestStake(owner, producersInSidechainCount - numberOfProducersRequired);
+    std::vector<struct producers> producersToRemove = GetAllProducersToRemove(owner, producersInSidechainCount - numberOfProducersRequired);
     if(producersToRemove.size() > 0){
         RemoveIPsDAM(owner, producersToRemove);
         RemoveProducersDAM(owner, producersToRemove);
@@ -285,7 +285,7 @@ int64_t blockbase::GetSpecificProducerWarningId(eosio::name owner,eosio::name pr
     return -1;
 }
 
-std::vector<struct blockbase::producers> blockbase::GetExtraProducersWithLowestStake(eosio::name owner, uint16_t numberOfProducersToRemove) {
+std::vector<struct blockbase::producers> blockbase::GetAllProducersToRemove(eosio::name owner, uint16_t numberOfProducersToRemove) {
     producersIndex _producers(_self, owner.value);
     std::vector<struct blockbase::producers> producers;
     std::vector<struct blockbase::producers> producersToRemove;
