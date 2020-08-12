@@ -359,7 +359,6 @@
     check(producerInSidechain != _producers.end(), "Producer not in pool.");
     check(IsProducerTurn(owner, producer), "It's not this producer turn to produce a block.");
     check(IsTimestampValid(owner, block), "Invalid timestamp in block header.");
-    check(IsBlockSizeValid(owner, block), "Invalid block size in block header.");
     check(IsPreviousBlockHashAndSequenceNumberValid(owner, block), "Invalid previous blockhash or sequence number in block header.");
     check(!HasBlockBeenProduced(owner, producer), "You already produced in this time slot, wait for your turn.");
     AddBlockDAM(owner, producer, block);
