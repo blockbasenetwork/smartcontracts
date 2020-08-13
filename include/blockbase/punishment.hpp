@@ -82,8 +82,14 @@ void blockbase::ClearWarningDAM(eosio::name owner, eosio::name producer, uint64_
 void blockbase::ClearWarningDAM(eosio::name owner, std::vector<struct blockbase::producers> producers) {
     warningsIndex _warnings(_self, owner.value);
     for (auto producer : producers) {
-        for(auto warning : _warnings) {
-            if(warning.producer == producer.key) _warnings.erase(warning);
+        auto itr = _warnings.begin();
+        while(itr != _warnings.end()) {
+            if(itr->producer == producer.key){
+                itr = _warnings.erase(itr);
+            }
+            else {
+                itr++;
+            }
         }
     }
 }
