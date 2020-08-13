@@ -80,9 +80,12 @@
 
     if (!reservedSeats.empty()) {
         for (auto seat : reservedSeats) {
-            _reserverseats.emplace(owner, [&](auto &reservedSeatI) {
-                reservedSeatI.key = seat;
-            });
+            auto reservedSeat = _reserverseats.find(seat.value);
+            if(reservedSeat == _reserverseats.end() && is_account(seat)) { 
+                _reserverseats.emplace(owner, [&](auto &reservedSeatI) {
+                    reservedSeatI.key = seat;
+                });
+            }
         }
     }
 
@@ -132,7 +135,7 @@
     
     auto producersAndCandidatesInSidechainCount = numberOfCandidates + numberOfProducersInChain;
     
-    if (numberOfCandidates == 0 || producersAndCandidatesInSidechainCount < ceil(numberOfProducersRequired * MIN_PRODUCERS_TO_PRODUCE_THRESHOLD)) {
+    if (numberOfCandidates == 0 || !AreThereEmptySlotsForCandidateTypes(owner) || producersAndCandidatesInSidechainCount < ceil(numberOfProducersRequired * MIN_PRODUCERS_TO_PRODUCE_THRESHOLD)) {
         eosio::print("Starting candidature phase again... \n");
         SetEndDateDAM(owner, CANDIDATURE_TIME_ID);
         ChangeContractStateDAM({owner, true, false, true, false, false, false, state->is_production_phase});
@@ -214,6 +217,9 @@
     if (producersWhoFailedToSendIPsList.size() > 0) {
         RemoveIPsDAM(owner, producersWhoFailedToSendIPsList);
         RemoveProducersDAM(owner, producersWhoFailedToSendIPsList);
+        DeleteCurrentProducerDAM(owner,producersWhoFailedToSendIPsList);
+        RemoveBlockCountDAM(owner,producersWhoFailedToSendIPsList);
+        ClearWarningDAM(owner,producersWhoFailedToSendIPsList);
         auto numberOfProducersRequired = info->number_of_validator_producers_required + info->number_of_history_producers_required + info->number_of_full_producers_required;
 
         if (std::distance(_producers.begin(), _producers.end()) < ceil(numberOfProducersRequired * MIN_PRODUCERS_IN_CHAIN_THRESHOLD)) {
@@ -230,7 +236,7 @@
     }
 
     ChangeContractStateDAM({owner, true, false, false, false, false, true, state->is_production_phase});
-    ResetBlockCountDAM(owner);
+    AddBlockCountDAM(owner);
     SetEndDateDAM(owner, RECEIVE_TIME_ID);
     eosio::print("Start receive time. \n");
 }
@@ -353,7 +359,6 @@
     check(producerInSidechain != _producers.end(), "Producer not in pool.");
     check(IsProducerTurn(owner, producer), "It's not this producer turn to produce a block.");
     check(IsTimestampValid(owner, block), "Invalid timestamp in block header.");
-    check(IsBlockSizeValid(owner, block), "Invalid block size in block header.");
     check(IsPreviousBlockHashAndSequenceNumberValid(owner, block), "Invalid previous blockhash or sequence number in block header.");
     check(!HasBlockBeenProduced(owner, producer), "You already produced in this time slot, wait for your turn.");
     AddBlockDAM(owner, producer, block);
@@ -369,7 +374,7 @@
     auto state = _states.find(owner.value);
     auto candidateInSidechainToRemove = _candidates.find(producer.value);
 
-    check(state != _states.end() && state->has_chain_started == true && state->is_candidature_phase == true, "The chain is not in the candidature phase, please check the current state of the chain. \n");
+    check(state != _states.end() && state->has_chain_started == true && state->is_secret_sending_phase == false && state->is_ip_sending_phase == false && state->is_ip_retrieving_phase == false, "The chain is not in the candidature phase, please check the current state of the chain. \n");
     check(candidateInSidechainToRemove != _candidates.end(), "Candidate can't be removed. Candidate doesn't exist in the candidate list. \n");
 
     RemoveCandidateDAM(owner, candidateInSidechainToRemove->key);
@@ -473,13 +478,20 @@
             RunSettlement(owner);
         }
 
+        if (blockCountForComputation == 1)
+        {
+            check(IsRequesterStakeEnough(owner), "Not enough stake to continue running chain");
+        }
+
         readyProducerslist = GetReadyProducers(owner); // The ready producers list can change in the settlement.
 
         if (readyProducerslist.size() > 0) {
             struct blockbase::producers nextproducer = GetNextProducer(owner);
 
-            if ((currentProducer->production_start_date_in_seconds + info->block_time_in_seconds) <= eosio::current_block_time().to_time_point().sec_since_epoch()) {
-                UpdateBlockCount(owner, currentProducer->producer);
+            if (currentProducer == _currentprods.end() || (currentProducer->production_start_date_in_seconds + info->block_time_in_seconds) <= eosio::current_block_time().to_time_point().sec_since_epoch()) {
+                if (currentProducer != _currentprods.end()) {
+                    UpdateBlockCount(owner, currentProducer->producer);
+                }
                 
                 auto deleteitr = _verifysig.begin();
                 while (deleteitr != _verifysig.end())
@@ -576,7 +588,7 @@
     });
 }
 
-[[eosio::action]] void blockbase::addhistsig(eosio::name owner, eosio::name producer, eosio::name producerToValidade, std::string verifySignature) {
+[[eosio::action]] void blockbase::addhistsig(eosio::name owner, eosio::name producer, eosio::name producerToValidade, std::string verifySignature, std::vector<char> packedTransaction) {
     require_auth(producer);
     histvalIndex _histval(_self, owner.value);
     producersIndex _producers(_self, owner.value);
@@ -584,6 +596,8 @@
     auto producerInTable = _producers.find(producer.value);
     check(producerInTable != _producers.end(), "Not a producer in this chain to be able to run action");
     check(histval != _histval.end(), "No validation request for this producer inserted");
+    check(std::equal(histval->packed_transaction.begin(), histval->packed_transaction.end(), packedTransaction.begin()), "Packed transaction doesn't match history validation entry");
+    check(std::find(histval->signed_producers.begin(), histval->signed_producers.end(), producer) == histval->signed_producers.end(), "Producer already inserted signature");
     check(std::find(histval->verify_signatures.begin(), histval->verify_signatures.end(), verifySignature) == histval->verify_signatures.end(), "Signature already inserted");
 
     _histval.modify(histval, producer, [&](auto &historyValidationI) {
@@ -639,6 +653,44 @@
     });
 }
 
+[[eosio::action]] void blockbase::addreseats(eosio::name owner, std::vector<eosio::name> seatsToAdd) {
+    require_auth(owner);
+    blacklistIndex _blacklists(_self, owner.value);
+    reservedseatIndex _reservedseats(_self, owner.value);
+    stateIndex _states(_self, owner.value);
+
+    auto chainState = _states.find(owner.value);
+
+    check(!seatsToAdd.empty(), "No account names to submited to add to the sidechain reserved seats");
+    check(chainState != _states.end() && chainState->has_chain_started == true && chainState->is_secret_sending_phase == false && chainState->is_ip_sending_phase == false && chainState->is_ip_retrieving_phase == false, "Chain is not in the right state. Try again when its candidature time or production time");
+    
+    for(auto seatToAdd : seatsToAdd) {
+        auto blacklist = _blacklists.find(seatToAdd.value);
+        auto reservedSeat = _reservedseats.find(seatToAdd.value);
+        if(blacklist == _blacklists.end() && reservedSeat == _reservedseats.end() && is_account(seatToAdd)) {
+            _reservedseats.emplace(owner, [&](auto &reservedSeatI){
+                reservedSeatI.key = seatToAdd;
+            });
+        }
+    }
+}
+
+[[eosio::action]] void blockbase::rreservseats(eosio::name owner, std::vector<eosio::name> seatsToRemove) {
+    require_auth(owner);
+    stateIndex _states(_self, owner.value);
+    reservedseatIndex _reservedseats(_self, owner.value);
+    
+    auto chainState = _states.find(owner.value);
+    check(!seatsToRemove.empty(), "No account names to submit to remove from sidechain reserved seats");
+    check(chainState != _states.end() && chainState->has_chain_started == true && chainState->is_secret_sending_phase == false && chainState->is_ip_sending_phase == false && chainState->is_ip_retrieving_phase == false, "Chain is not in the right state. Try again when its candidature time or production time");
+    
+    for(auto seatToRemove : seatsToRemove) {
+        auto reservedSeat = _reservedseats.find(seatToRemove.value);
+        if(reservedSeat != _reservedseats.end() && is_account(seatToRemove))  
+            _reservedseats.erase(reservedSeat); 
+    }
+}
+
 [[eosio::action]] void blockbase::exitrequest(eosio::name owner, eosio::name account) {
     require_auth(account);
     producersIndex _producers(_self, owner.value);
@@ -647,9 +699,25 @@
     check(producerInTable -> work_duration_in_seconds == std::numeric_limits<uint32_t>::max(), "This producer has already submitted an exit request");
     
     _producers.modify(producerInTable, account, [&](auto &producerI) {
-        producerI.work_duration_in_seconds = eosio::current_block_time().to_time_point().sec_since_epoch() + 86400; // 86400 is one day in seconds.
+        producerI.work_duration_in_seconds = eosio::current_block_time().to_time_point().sec_since_epoch() + ONE_DAY_IN_SECONDS;
     });
-   
+}
+
+[[eosio::action]] void blockbase::alterconfig(eosio::name owner, blockbase::configchange infoChangeJson) {
+    require_auth(owner);
+
+    stateIndex _states(_self, owner.value);
+    producersIndex _producers(_self, owner.value);
+    reservedseatIndex _reserverseats(_self, owner.value);
+    auto state = _states.find(owner.value);
+    auto numberOfProducersRequired = infoChangeJson.number_of_validator_producers_required + infoChangeJson.number_of_history_producers_required + infoChangeJson.number_of_full_producers_required;
+
+    check(infoChangeJson.key.value == owner.value, "Account isn't the same account as the sidechain owner.");
+
+    check(state != _states.end() && state->has_chain_started == true && state->is_configuration_phase == false && state->is_secret_sending_phase == false && state->is_ip_sending_phase == false && state->is_ip_retrieving_phase == false , "This sidechain is in a state that doesn't allow configuration changes");
+    check(IsConfigurationChangeValid(infoChangeJson), "The configuration changes inserted is incorrect or not valid, please insert it again.");
+
+    UpdateChangeConfigDAM(owner, infoChangeJson);
 }
 
 [[eosio::action]] void blockbase::endservice(eosio::name owner) {

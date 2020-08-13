@@ -25,12 +25,48 @@
         return publicKey.size() == 53 && publicKey.substr(0,3) == "EOS";
     }
 
+    bool blockbase::AreThereEmptySlotsForCandidateTypes(eosio::name owner) {
+        producersIndex _producers(_self, owner.value);
+        candidatesIndex _candidates(_self, owner.value);
+        infoIndex _infos(_self, owner.value);
+        auto info = _infos.get(owner.value);
+
+        int32_t numberOfValidatorProducers = 0;
+        int32_t numberOfHistoryProducers = 0;
+        int32_t numberOfFullProducers = 0;
+
+        for(auto producer : _producers){
+            if(producer.producer_type == 1) numberOfValidatorProducers += 1;
+            if(producer.producer_type == 2) numberOfHistoryProducers += 1;
+            if(producer.producer_type == 3) numberOfFullProducers += 1;
+        }
+
+        for(auto candidate : _candidates){
+            if(candidate.producer_type == 1 && info.number_of_validator_producers_required > numberOfValidatorProducers) return true;
+            if(candidate.producer_type == 2 && info.number_of_history_producers_required > numberOfHistoryProducers) return true;
+            if(candidate.producer_type == 3 && info.number_of_full_producers_required > numberOfFullProducers) return true;
+        }
+
+        return false;
+    }
+
     bool blockbase::IsConfigurationValid(blockbase::contractinfo info) {
         auto numberOfProducersRequired = info.number_of_validator_producers_required + info.number_of_history_producers_required + info.number_of_full_producers_required;
         if(info.candidature_phase_duration_in_seconds < MIN_CANDIDATURE_TIME_IN_SECONDS) return false;
         if(info.ip_sending_phase_duration_in_seconds < MIN_IP_SEND_TIME_IN_SECONDS) return false; 
         if(info.ip_retrieval_phase_duration_in_seconds < MIN_IP_SEND_TIME_IN_SECONDS) return false;
         if(numberOfProducersRequired < MIN_REQUIRED_PRODUCERS) return false;
+        if(info.block_size_in_bytes <= MIN_BLOCK_SIZE) return false;
+        if(info.min_payment_per_block_full_producers > info.max_payment_per_block_full_producers) return false;
+        if(info.min_payment_per_block_history_producers > info.max_payment_per_block_history_producers) return false;
+        if(info.min_payment_per_block_validator_producers > info.max_payment_per_block_validator_producers) return false;
+        return info.min_candidature_stake >= MIN_CANDIDATE_STAKE;
+    }
+
+    bool blockbase::IsConfigurationChangeValid(blockbase::configchange info) {
+        auto numberOfProducersRequired = info.number_of_validator_producers_required + info.number_of_history_producers_required + info.number_of_full_producers_required;
+        if(numberOfProducersRequired < MIN_REQUIRED_PRODUCERS) return false;
+        if(info.block_size_in_bytes <= MIN_BLOCK_SIZE) return false;
         if(info.min_payment_per_block_full_producers > info.max_payment_per_block_full_producers) return false;
         if(info.min_payment_per_block_history_producers > info.max_payment_per_block_history_producers) return false;
         if(info.min_payment_per_block_validator_producers > info.max_payment_per_block_validator_producers) return false;
@@ -230,6 +266,33 @@
             newInfoI.block_time_in_seconds = informationJson.block_time_in_seconds;
             newInfoI.num_blocks_between_settlements = number_of_producers * 5;
             newInfoI.block_size_in_bytes = informationJson.block_size_in_bytes;
+        });
+    }
+
+    void blockbase::UpdateChangeConfigDAM(eosio::name owner, blockbase::configchange infoChangeJson) {
+        configchgIndex _configchange(_self, owner.value);
+
+        auto info = _configchange.find(owner.value);
+        if(info != _configchange.end()) _configchange.erase(info);
+
+        auto number_of_producers = infoChangeJson.number_of_validator_producers_required + infoChangeJson.number_of_history_producers_required + infoChangeJson.number_of_full_producers_required;
+         
+        _configchange.emplace(owner, [&](auto &newInfoI) {
+            newInfoI.key = owner;
+            newInfoI.max_payment_per_block_validator_producers = infoChangeJson.max_payment_per_block_validator_producers;
+            newInfoI.max_payment_per_block_history_producers = infoChangeJson.max_payment_per_block_history_producers;
+            newInfoI.max_payment_per_block_full_producers = infoChangeJson.max_payment_per_block_full_producers;
+            newInfoI.min_payment_per_block_validator_producers = infoChangeJson.min_payment_per_block_validator_producers;
+            newInfoI.min_payment_per_block_history_producers = infoChangeJson.min_payment_per_block_history_producers;
+            newInfoI.min_payment_per_block_full_producers = infoChangeJson.min_payment_per_block_full_producers;
+            newInfoI.min_candidature_stake = infoChangeJson.min_candidature_stake;
+            newInfoI.number_of_validator_producers_required = infoChangeJson.number_of_validator_producers_required;
+            newInfoI.number_of_history_producers_required = infoChangeJson.number_of_history_producers_required;
+            newInfoI.number_of_full_producers_required = infoChangeJson.number_of_full_producers_required;
+            newInfoI.block_time_in_seconds = infoChangeJson.block_time_in_seconds;
+            newInfoI.num_blocks_between_settlements = number_of_producers * 5;
+            newInfoI.block_size_in_bytes = infoChangeJson.block_size_in_bytes;
+            newInfoI.config_changed_time_in_seconds = eosio::current_block_time().to_time_point().sec_since_epoch();
         });
     }
 

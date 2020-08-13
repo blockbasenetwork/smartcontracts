@@ -2,6 +2,7 @@ void blockbase::EvaluateProducer(eosio::name owner, eosio::name producer, uint16
     warningsIndex _warnings(_self, owner.value);
     auto producerWarningId = GetSpecificProducerWarningId(owner, producer, WARNING_TYPE_BLOCKS_FAILED);
     uint16_t totalBlocks = producedBlocks + failedBlocks;
+    if (totalBlocks == 0) return;
     uint16_t totalFailedBlocksPermited = ceil(MIN_BLOCKS_THRESHOLD_FOR_PUNISH * totalBlocks);
     if(producerWarningId == -1 && failedBlocks >= totalFailedBlocksPermited) 
         AddWarningDAM(owner, producer, WARNING_TYPE_BLOCKS_FAILED);
@@ -76,6 +77,21 @@ void blockbase::ClearWarningDAM(eosio::name owner, eosio::name producer, uint64_
     warningsIndex _warnings(_self, owner.value);
     auto producerWarning = _warnings.find(warningId);
     _warnings.erase(producerWarning);
+}
+
+void blockbase::ClearWarningDAM(eosio::name owner, std::vector<struct blockbase::producers> producers) {
+    warningsIndex _warnings(_self, owner.value);
+    for (auto producer : producers) {
+        auto itr = _warnings.begin();
+        while(itr != _warnings.end()) {
+            if(itr->producer == producer.key){
+                itr = _warnings.erase(itr);
+            }
+            else {
+                itr++;
+            }
+        }
+    }
 }
 
 void blockbase::RemoveProducersDAM(eosio::name owner, std::vector<struct blockbase::producers> producers) {

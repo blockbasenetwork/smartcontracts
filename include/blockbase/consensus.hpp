@@ -2,11 +2,10 @@
 void blockbase::RunSettlement(eosio::name owner) {
     infoIndex _infos(_self, owner.value);
     blockscountIndex _blockscount(_self, owner.value);
-    producersIndex _producers(_self, owner.value);
     warningsIndex _warnings(_self, owner.value);
     uint8_t producedBlocks = 0, failedBlocks = 0;
     std::vector<blockbase::producers> readyProducers = blockbase::GetReadyProducers(owner);
-    
+    int64_t totalPaymentThisSettlement = 0;
     for (struct blockbase::producers &producer : readyProducers) {
         auto producerBlockCountTable = _blockscount.find(producer.key.value);
         if (producerBlockCountTable != _blockscount.end()) {
@@ -17,14 +16,69 @@ void blockbase::RunSettlement(eosio::name owner) {
         
         auto totalProducerPaymentPerBlockMined = CalculateRewardBasedOnBlockSize(owner,producer);
         auto producerWarningId = GetSpecificProducerWarningId(owner, producer.key, WARNING_TYPE_PUNISH);
-        if(producerWarningId == -1 && producedBlocks > 0) RewardProducerDAM(owner, producer.key, totalProducerPaymentPerBlockMined);
+        if(producerWarningId == -1 && producedBlocks > 0) { 
+            RewardProducerDAM(owner, producer.key, totalProducerPaymentPerBlockMined);
+            totalPaymentThisSettlement += totalProducerPaymentPerBlockMined;
+         }
     }
     ResetBlockCountDAM(owner);
-    IsRequesterStakeEnough(owner);
     CheckHistoryValidation(owner);
     WarningsManage(owner);
     RemoveProducerWithWorktimeFinished(owner);
+    UpdateConfigurations(owner);
+    RemoveExtraProducers(owner);
     eosio::print("Computation has ended. \n");
+}
+
+void blockbase::UpdateConfigurations(eosio::name owner) {
+    configchgIndex _configchange(_self, owner.value);
+    auto changeInfo = _configchange.find(owner.value);
+    if(changeInfo == _configchange.end()) return;
+    if(changeInfo->config_changed_time_in_seconds > (eosio::current_block_time().to_time_point().sec_since_epoch() - ONE_DAY_IN_SECONDS)) return;
+
+    infoIndex _infos(_self, owner.value);
+    auto info = _infos.find(owner.value);
+
+    if (info != _infos.end()) {
+        _infos.modify(info, owner, [&](auto &infoI) {
+            infoI.max_payment_per_block_validator_producers = changeInfo->max_payment_per_block_validator_producers;
+            infoI.max_payment_per_block_history_producers = changeInfo->max_payment_per_block_history_producers;
+            infoI.max_payment_per_block_full_producers = changeInfo->max_payment_per_block_full_producers;
+            infoI.min_payment_per_block_validator_producers = changeInfo->min_payment_per_block_validator_producers;
+            infoI.min_payment_per_block_history_producers = changeInfo->min_payment_per_block_history_producers;
+            infoI.min_payment_per_block_full_producers = changeInfo->min_payment_per_block_full_producers;
+            infoI.min_candidature_stake = changeInfo->min_candidature_stake;
+            infoI.number_of_validator_producers_required = changeInfo->number_of_validator_producers_required;
+            infoI.number_of_history_producers_required = changeInfo->number_of_history_producers_required;
+            infoI.number_of_full_producers_required = changeInfo->number_of_full_producers_required;
+            infoI.block_time_in_seconds = changeInfo->block_time_in_seconds;
+            infoI.num_blocks_between_settlements = changeInfo->num_blocks_between_settlements;
+            infoI.block_size_in_bytes = changeInfo->block_size_in_bytes;
+        });
+    }
+
+    _configchange.erase(changeInfo);
+}
+
+void blockbase::RemoveExtraProducers(eosio::name owner) {
+    infoIndex _infos(_self, owner.value);
+    producersIndex _producers(_self, owner.value);
+    auto info = _infos.find(owner.value);
+
+    auto producersInSidechainCount = std::distance(_producers.begin(), _producers.end());
+    auto numberOfProducersRequired = info->number_of_validator_producers_required + info->number_of_history_producers_required + info->number_of_full_producers_required;
+
+    if (numberOfProducersRequired >= producersInSidechainCount) return;
+
+    std::vector<struct producers> producersToRemove = GetAllProducersToRemove(owner, producersInSidechainCount - numberOfProducersRequired);
+    if(producersToRemove.size() > 0){
+        RemoveIPsDAM(owner, producersToRemove);
+        RemoveProducersDAM(owner, producersToRemove);
+        DeleteCurrentProducerDAM(owner,producersToRemove);
+        RemoveBlockCountDAM(owner,producersToRemove);
+        RemoveAllProducerWarningsDAM(owner, producersToRemove);
+        RemoveHistVerDAM(owner, producersToRemove);
+    }
 }
 
 void blockbase::RemoveBadProducers(eosio::name owner) {
@@ -40,22 +94,29 @@ void blockbase::RemoveBadProducers(eosio::name owner) {
     }
 }
 
-void blockbase::IsRequesterStakeEnough(eosio::name owner) {
+bool blockbase::IsRequesterStakeEnough(eosio::name owner) {
     infoIndex _infos(_self, owner.value);
     auto info = _infos.find(owner.value);
+    std::vector<blockbase::producers> readyProducers = blockbase::GetReadyProducers(owner);
+    int64_t totalRewardsLeftToGet = 0;
+    for (struct blockbase::producers &producer : readyProducers) {
+        rewardsIndex _rewards(_self, producer.key.value);
+        auto rewardsForProducer = _rewards.find(owner.value);
+        if(rewardsForProducer != _rewards.end()) {
+            totalRewardsLeftToGet += rewardsForProducer->reward;
+        }
+    }
 
     asset clientStake = blockbasetoken::get_stake(BLOCKBASE_TOKEN, owner, owner);
+    int64_t clientStakeAmountUpdated = clientStake.amount - totalRewardsLeftToGet;
     auto MaxPaymentPerBlock = info->max_payment_per_block_full_producers;
     if(MaxPaymentPerBlock < info->max_payment_per_block_history_producers) MaxPaymentPerBlock = info->max_payment_per_block_history_producers;
     if(MaxPaymentPerBlock < info->max_payment_per_block_validator_producers) MaxPaymentPerBlock = info->max_payment_per_block_validator_producers;
-    if (clientStake.amount < (MaxPaymentPerBlock * (info->num_blocks_between_settlements))) {
-        ChangeContractStateDAM({owner, true, false, false, false, false, false, false});
-        RemoveBlockCountDAM(owner);
-        RemoveIPsDAM(owner);
-        RemoveProducersDAM(owner);
-        eosio::print("  No stake left for next payment, so all producers left the chain without penaltis! \n");
-        eosio::print("  Configure the chain again. \n");
+    if (clientStakeAmountUpdated < (MaxPaymentPerBlock * (info->num_blocks_between_settlements))) {
+        return false;
     }
+
+    return true;
 }
 
 
@@ -223,4 +284,16 @@ int64_t blockbase::GetSpecificProducerWarningId(eosio::name owner,eosio::name pr
     }
     return -1;
 }
+
+std::vector<struct blockbase::producers> blockbase::GetAllProducersToRemove(eosio::name owner, uint16_t numberOfProducersToRemove) {
+    producersIndex _producers(_self, owner.value);
+    std::vector<struct blockbase::producers> producers;
+    std::vector<struct blockbase::producers> producersToRemove;
+    for(auto& producer : _producers) {
+        producers.push_back(producer);
+    }
+
+    return producers;
+}
+
 #pragma endregion
