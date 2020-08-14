@@ -44,7 +44,7 @@
     eosio::print("Chain started. You can now insert your configurations. \n");
 }
 
-[[eosio::action]] void blockbase::configchain(eosio::name owner, blockbase::contractinfo infoJson, std::vector<eosio::name> reservedSeats, uint32_t softwareVersion) {
+[[eosio::action]] void blockbase::configchain(eosio::name owner, blockbase::contractinfo infoJson, std::vector<eosio::name> reservedSeats, uint32_t softwareVersion, eosio::binary_extension<blockbase::blockheaders>& startingBlock) {
     require_auth(owner);
 
     stateIndex _states(_self, owner.value);
@@ -56,7 +56,7 @@
     check(infoJson.key.value == owner.value, "Account isn't the same account as the sidechain owner.");
 
     check(state != _states.end() && state->has_chain_started == true, "This sidechain hasnt't been created yet, please create it first.");
-    check(state->is_production_phase == false, "The sidechain is already in production.");
+    check(state->is_production_phase == false && state->is_candidature_phase == false && state->is_secret_sending_phase == false && state->is_ip_sending_phase == false && state->is_ip_retrieving_phase == false, "The sidechain is already in production.");
     check(IsConfigurationValid(infoJson), "The configuration inserted is incorrect or not valid, please insert it again.");
     check(softwareVersion >= 1, "The version inserted is not valid"); // 1 represents the lowest software version 0.0.1
     eosio::asset ownerStake = blockbasetoken::get_stake(BLOCKBASE_TOKEN, owner, owner);
@@ -87,6 +87,26 @@
                 });
             }
         }
+    }
+
+    if (startingBlock) {
+        blockheadersIndex _blockheaders(_self, owner.value);
+        auto block = startingBlock.value();
+
+        _blockheaders.emplace(owner, [&](auto &newBlockI) {
+            newBlockI.producer = block.producer;
+            newBlockI.block_hash = block.block_hash;
+            newBlockI.previous_block_hash = block.previous_block_hash;
+            newBlockI.last_trx_sequence_number = block.last_trx_sequence_number;
+            newBlockI.sequence_number = block.sequence_number;
+            newBlockI.timestamp = block.timestamp;
+            newBlockI.transactions_count = block.transactions_count;
+            newBlockI.producer_signature = block.producer_signature;
+            newBlockI.merkletree_root_hash = block.merkletree_root_hash;
+            newBlockI.is_verified = true;
+            newBlockI.is_latest_block = true;
+            newBlockI.block_size_in_bytes = block.block_size_in_bytes;
+        });
     }
 
     eosio::print("Information inserted. \n");

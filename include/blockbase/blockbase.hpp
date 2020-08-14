@@ -266,7 +266,7 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     indexed_by<"byexittime"_n, const_mem_fun<warnings, uint64_t, &warnings::by_exit_time>>> warningsIndex;
 
     [[eosio::action]] void startchain(eosio::name owner, std::string publicKey);
-    [[eosio::action]] void configchain(eosio::name owner, blockbase::contractinfo infoJson, std::vector<eosio::name> reservedSeats, uint32_t softwareVersion);
+    [[eosio::action]] void configchain(eosio::name owner, blockbase::contractinfo infoJson, std::vector<eosio::name> reservedSeats, uint32_t softwareVersion, eosio::binary_extension<blockbase::blockheaders>& startingBlock);
     [[eosio::action]] void startcandtime(eosio::name owner);
     [[eosio::action]] void secrettime(eosio::name owner);
     [[eosio::action]] void startsendtime(eosio::name owner);
