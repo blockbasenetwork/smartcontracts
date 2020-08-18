@@ -484,8 +484,6 @@
 
     std::vector<blockbase::producers> readyProducerslist = GetReadyProducers(owner);
     if (readyProducerslist.size() > 0) {
-        auto currentProducer = _currentprods.begin();
-
         auto blockCountForComputation = 0;
 
         for (auto count : _blockscount) {
@@ -504,6 +502,7 @@
         }
 
         readyProducerslist = GetReadyProducers(owner); // The ready producers list can change in the settlement.
+        auto currentProducer = _currentprods.begin();
 
         if (readyProducerslist.size() > 0) {
             struct blockbase::producers nextproducer = GetNextProducer(owner);

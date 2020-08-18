@@ -244,6 +244,7 @@ void blockbase::RemoveProducerWithWorktimeFinished(eosio::name owner){
         RemoveProducersDAM(owner, producersToRemove);
         DeleteCurrentProducerDAM(owner,producersToRemove);
         RemoveBlockCountDAM(owner,producersToRemove);
+        RemoveHistVerDAM(owner, producersToRemove);
     }
 }
 
