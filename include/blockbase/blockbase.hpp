@@ -276,6 +276,7 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     [[eosio::action]] void addsecret(eosio::name owner, eosio::name producer, checksum256 secret);
     [[eosio::action]] void rcandidate(eosio::name owner, eosio::name name);
     [[eosio::action]] void addencryptip(eosio::name owner, eosio::name name, std::vector<std::string> encryptedIps);
+    [[eosio::action]] void updatekey(eosio::name owner, eosio::name producer, std::string publicKey);
     [[eosio::action]] void changecprod(eosio::name owner);
     [[eosio::action]] void addblock(eosio::name owner, eosio::name producer, blockbase::blockheaders block);
     [[eosio::action]] void removeblisted(eosio::name owner, eosio::name producer);

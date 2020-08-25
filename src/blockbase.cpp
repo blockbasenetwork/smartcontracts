@@ -343,6 +343,23 @@
     eosio::print("Information successfully inserted. \n");
 }
 
+[[eosio::action]] void blockbase::updatekey(eosio::name owner, eosio::name producer, std::string publicKey) {
+    require_auth(producer);
+
+    stateIndex _states(_self, owner.value);
+    producersIndex _producers(_self, owner.value);
+
+    auto state = _states.find(owner.value);
+    auto producerInSidechain = _producers.find(producer.value);
+
+    check(state != _states.end() && state->has_chain_started == true, "The chain is not started, please check the current state of the chain. \n");
+    check(producerInSidechain != _producers.end(), "Producer not in pool.");
+    
+    _producers.modify(producerInSidechain, producer, [&](auto &producerI) {
+        producerI.public_key = publicKey;
+    });
+}
+
 [[eosio::action]] void blockbase::addsecret(eosio::name owner, eosio::name producer, checksum256 secret) {
     require_auth(producer);
 
