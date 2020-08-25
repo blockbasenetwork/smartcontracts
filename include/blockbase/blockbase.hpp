@@ -355,6 +355,7 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     void SoftwareVersionDAM(eosio::name owner, uint32_t softwareVersion);
     void UpdateConfigurations(eosio::name owner);
     void RemoveExtraProducers(eosio::name owner);
+    void RemoveUnreadyProducersWithLongWaitTime(eosio::name owner);
     uint8_t CalculateNumberOfIPsRequired(float numberOfProducers);
     uint8_t CalculateMultiSigThreshold(uint8_t producersNumber);
     uint64_t CalculateRewardBasedOnBlockSize(eosio::name owner, struct blockbase::producers producer);

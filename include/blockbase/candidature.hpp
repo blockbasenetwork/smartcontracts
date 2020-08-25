@@ -219,7 +219,7 @@
         if(std::distance(producerWarningsList.begin(), producerWarningsList.end()) != 0) {
             for(auto warning : producerWarningsList) {
                 auto warningITR = _warnings.find(warning.key);
-                _warnings.modify(warningITR, producer, [&](auto &warningI) {
+                _warnings.modify(warningITR, owner, [&](auto &warningI) {
                     warningI.warning_creation_date_in_seconds = eosio::current_block_time().to_time_point().sec_since_epoch() - (warning.producer_exit_date_in_seconds - warning.warning_creation_date_in_seconds);
                     warningI.producer_exit_date_in_seconds = 0;
                 });

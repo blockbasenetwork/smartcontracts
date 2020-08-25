@@ -25,6 +25,7 @@ void blockbase::RunSettlement(eosio::name owner) {
     CheckHistoryValidation(owner);
     WarningsManage(owner);
     RemoveProducerWithWorktimeFinished(owner);
+    RemoveUnreadyProducersWithLongWaitTime(owner);
     UpdateConfigurations(owner);
     RemoveExtraProducers(owner);
     eosio::print("Computation has ended. \n");
@@ -226,10 +227,10 @@ void blockbase::RemoveProducerWithWorktimeFinished(eosio::name owner){
     std::vector<struct producers> producersToRemove;
     for(auto producer : _producers) {
         if(producer.work_duration_in_seconds <= eosio::current_block_time().to_time_point().sec_since_epoch()) {        
-            auto warningsByExitTime = _warnings.get_index<"byexittime"_n>(); // If is producer makes sense to order by exittime due to the producer_exit_date_in_seconds being 0
-            for(auto warning : warningsByExitTime) {
+            for(auto warning : _warnings) {
                 if(warning.producer == producer.key) {
-                    _warnings.modify(warning, owner, [&](auto &warningI) {
+                    auto warningToModify = _warnings.find(warning.key);
+                    _warnings.modify(warningToModify, owner, [&](auto &warningI) {
                         warningI.producer_exit_date_in_seconds = eosio::current_block_time().to_time_point().sec_since_epoch();
                     });
                     eosio::print("Exit date registed for the ", producer.key);
@@ -248,16 +249,32 @@ void blockbase::RemoveProducerWithWorktimeFinished(eosio::name owner){
     }
 }
 
+void blockbase::RemoveUnreadyProducersWithLongWaitTime(eosio::name owner){
+    producersIndex _producers(_self, owner.value);
+    std::vector<struct producers> producersToRemove;
+    for(auto producer : _producers) {
+        if(producer.is_ready_to_produce && producer.sidechain_start_date_in_seconds + (ONE_DAY_IN_SECONDS * 3) <= eosio::current_block_time().to_time_point().sec_since_epoch()) {        
+            producersToRemove.push_back(producer);
+        }
+    }
+    if(std::distance(producersToRemove.begin(), producersToRemove.end()) > 0) {
+        RemoveIPsDAM(owner, producersToRemove);
+        RemoveProducersDAM(owner, producersToRemove);
+        RemoveBlockCountDAM(owner,producersToRemove);
+        RemoveHistVerDAM(owner, producersToRemove);
+    }
+}
+
 void blockbase::WarningsManage(eosio::name owner) {
     warningsIndex _warnings(_self, owner.value);
     std::map<uint64_t, eosio::name> warningIdProducerNameMapToClear;
     for(auto warning : _warnings) {
         // Case the warning of the producer stays 5 days with the same warning the producer is flagged to be banned
-        if(warning.producer_exit_date_in_seconds == 0 && eosio::current_block_time().to_time_point().sec_since_epoch() - warning.warning_creation_date_in_seconds >= 432000) { // 432000 is 5 days in seconds
+        if(warning.producer_exit_date_in_seconds == 0 && eosio::current_block_time().to_time_point().sec_since_epoch() - warning.warning_creation_date_in_seconds >= (ONE_DAY_IN_SECONDS * 5)) {
             AddWarningDAM(owner, warning.producer, WARNING_TYPE_PUNISH);
         
         // Case 20 days has pass since the producer as exit the sidechain the warning is cleared.
-        } else if(warning.producer_exit_date_in_seconds != 0 && eosio::current_block_time().to_time_point().sec_since_epoch() - warning.producer_exit_date_in_seconds >= 1728000) { // 1728000 is 20 days in seconds
+        } else if(warning.producer_exit_date_in_seconds != 0 && eosio::current_block_time().to_time_point().sec_since_epoch() - warning.producer_exit_date_in_seconds >= (ONE_DAY_IN_SECONDS * 20)) {
             warningIdProducerNameMapToClear.insert(std::pair<uint64_t, eosio::name>(warning.key, warning.producer));
         }
     }
