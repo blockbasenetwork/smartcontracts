@@ -64,10 +64,12 @@ void blockbase::UpdateConfigurations(eosio::name owner) {
 void blockbase::RemoveExtraProducers(eosio::name owner) {
     infoIndex _infos(_self, owner.value);
     producersIndex _producers(_self, owner.value);
+    reservedseatIndex _reservedseats(_self, owner.value);
     auto info = _infos.find(owner.value);
 
     auto producersInSidechainCount = std::distance(_producers.begin(), _producers.end());
-    auto numberOfProducersRequired = info->number_of_validator_producers_required + info->number_of_history_producers_required + info->number_of_full_producers_required;
+    auto reservedSeatsCount = std::distance(_reservedseats.begin(), _reservedseats.end());
+    auto numberOfProducersRequired = info->number_of_validator_producers_required + info->number_of_history_producers_required + info->number_of_full_producers_required + reservedSeatsCount;
 
     if (numberOfProducersRequired >= producersInSidechainCount) return;
 

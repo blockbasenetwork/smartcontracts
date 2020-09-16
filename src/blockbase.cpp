@@ -44,27 +44,29 @@
     eosio::print("Chain started. You can now insert your configurations. \n");
 }
 
-[[eosio::action]] void blockbase::configchain(eosio::name owner, blockbase::contractinfo infoJson, std::vector<eosio::name> reservedSeats, uint32_t softwareVersion, eosio::binary_extension<blockbase::blockheaders>& startingBlock) {
+[[eosio::action]] void blockbase::configchain(eosio::name owner, blockbase::contractinfo infoJson, std::vector<blockbase::reservedseat> reservedSeats, uint32_t softwareVersion, eosio::binary_extension<blockbase::blockheaders>& startingBlock) {
     require_auth(owner);
 
     stateIndex _states(_self, owner.value);
     producersIndex _producers(_self, owner.value);
-    reservedseatIndex _reserverseats(_self, owner.value);
+    reservedseatIndex _reservedseats(_self, owner.value);
+
+    auto existReservedSeatsCount = std::distance(_reservedseats.begin(), _reservedseats.end());
+    auto newReservedSeatsCount = std::distance(reservedSeats.begin(), reservedSeats.end());
+    auto reservedSeatsCount = existReservedSeatsCount + newReservedSeatsCount;
     auto state = _states.find(owner.value);
-    auto numberOfProducersRequired = infoJson.number_of_validator_producers_required + infoJson.number_of_history_producers_required + infoJson.number_of_full_producers_required;
 
     check(infoJson.key.value == owner.value, "Account isn't the same account as the sidechain owner.");
 
     check(state != _states.end() && state->has_chain_started == true, "This sidechain hasnt't been created yet, please create it first.");
     check(state->is_production_phase == false && state->is_candidature_phase == false && state->is_secret_sending_phase == false && state->is_ip_sending_phase == false && state->is_ip_retrieving_phase == false, "The sidechain is already in production.");
-    check(IsConfigurationValid(infoJson), "The configuration inserted is incorrect or not valid, please insert it again.");
+    check(IsConfigurationValid(infoJson, reservedSeatsCount), "The configuration inserted is incorrect or not valid, please insert it again.");
     check(softwareVersion >= 1, "The version inserted is not valid"); // 1 represents the lowest software version 0.0.1
     eosio::asset ownerStake = blockbasetoken::get_stake(BLOCKBASE_TOKEN, owner, owner);
     check(ownerStake.amount > MIN_REQUESTER_STAKE, "No stake inserted or the amount is not valid. Please insert your stake and configure the chain again.");
-    check(reservedSeats.size() <= numberOfProducersRequired, "Number of reserved seats is bigger than the number of producers requested");
+    //check(reservedSeats.size() <= numberOfProducersRequired, "Number of reserved seats is bigger than the number of producers requested");
 
     ChangeContractStateDAM({owner, true, true, false, false, false, false, false});
-    UpdateContractInfoDAM(owner, infoJson);
     SoftwareVersionDAM(owner, softwareVersion);
     
     //TODO rpinto - why does it do a cleaning here? And why to these tables only?
@@ -73,21 +75,24 @@
         RemoveBlockCountDAM(owner);
         RemoveIPsDAM(owner);
         RemoveProducersDAM(owner);
-        auto iterator = _reserverseats.begin();
-        while (iterator != _reserverseats.end())
-            iterator = _reserverseats.erase(iterator);
+        auto iterator = _reservedseats.begin();
+        while (iterator != _reservedseats.end())
+            iterator = _reservedseats.erase(iterator);
     }
 
     if (!reservedSeats.empty()) {
         for (auto seat : reservedSeats) {
-            auto reservedSeat = _reserverseats.find(seat.value);
-            if(reservedSeat == _reserverseats.end() && is_account(seat)) { 
-                _reserverseats.emplace(owner, [&](auto &reservedSeatI) {
-                    reservedSeatI.key = seat;
+            auto reservedSeat = _reservedseats.find(seat.key.value);
+            if(reservedSeat == _reservedseats.end() && is_account(seat.key)) { 
+                _reservedseats.emplace(owner, [&](auto &reservedSeatI) {
+                    reservedSeatI.key = seat.key;
+                    reservedSeatI.producer_type = seat.producer_type;
                 });
             }
         }
     }
+
+    UpdateContractInfoDAM(owner, infoJson);
 
     if (startingBlock) {
         blockheadersIndex _blockheaders(_self, owner.value);
@@ -139,8 +144,10 @@
     producersIndex _producers(_self, owner.value);
     stateIndex _states(_self, owner.value);
     infoIndex _infos(_self, owner.value);
+    reservedseatIndex _reservedseats(_self, owner.value);
     auto state = _states.find(owner.value);
     auto info = _infos.find(owner.value);
+    auto reservedSeatsCount = std::distance(_reservedseats.begin(), _reservedseats.end());
 
     check(info != _infos.end(), "No configuration inserted, please insert the configuration first.");
 
@@ -149,7 +156,7 @@
     
     check(eosio::current_block_time().to_time_point().sec_since_epoch() >= info->candidature_phase_end_date_in_seconds && info->candidature_phase_end_date_in_seconds != 0, "The candidature phase hasn't finished yet, please check the contract information for more details.");
 
-    auto numberOfProducersRequired = info->number_of_validator_producers_required + info->number_of_history_producers_required + info->number_of_full_producers_required;
+    auto numberOfProducersRequired = info->number_of_validator_producers_required + info->number_of_history_producers_required + info->number_of_full_producers_required + reservedSeatsCount;
     auto numberOfCandidates = std::distance(_candidates.begin(), _candidates.end());
     auto numberOfProducersInChain = std::distance(_producers.begin(), _producers.end());
     
@@ -175,6 +182,7 @@
     producersIndex _producers(_self, owner.value);
     stateIndex _states(_self, owner.value);
     infoIndex _infos(_self, owner.value);
+    reservedseatIndex _reservedseats(_self, owner.value);
 
     auto state = _states.find(owner.value);
     auto info = _infos.find(owner.value);
@@ -189,7 +197,8 @@
     RemoveCandidatesDAM(owner, candidatesToClear);
 
     auto producersInSidechainCount = std::distance(_producers.begin(), _producers.end());
-    auto numberOfProducersRequired = info->number_of_validator_producers_required + info->number_of_history_producers_required + info->number_of_full_producers_required;
+    auto reservedSeatsCount = std::distance(_reservedseats.begin(), _reservedseats.end());
+    auto numberOfProducersRequired = info->number_of_validator_producers_required + info->number_of_history_producers_required + info->number_of_full_producers_required + reservedSeatsCount;
 
     std::vector<struct blockbase::candidates> selectedCandidateList = RunCandidatesSelection(owner);
 
@@ -224,6 +233,7 @@
     producersIndex _producers(_self, owner.value);
     infoIndex _infos(_self, owner.value);
     stateIndex _states(_self, owner.value);
+    reservedseatIndex _reservedseats(_self, owner.value);
 
     auto state = _states.find(owner.value);
     auto info = _infos.find(owner.value);
@@ -233,6 +243,7 @@
     check(eosio::current_block_time().to_time_point().sec_since_epoch() >= info->ip_sending_phase_end_date_in_seconds && info->ip_sending_phase_end_date_in_seconds != 0, "The IP sending phase hasn't finished yet, please check the contract information for more details.");
 
     std::vector<struct blockbase::producers> producersWhoFailedToSendIPsList = GetProducersWhoFailedToSendIPs(owner);
+    auto reservedSeatsCount = std::distance(_reservedseats.begin(), _reservedseats.end());
 
     if (producersWhoFailedToSendIPsList.size() > 0) {
         RemoveIPsDAM(owner, producersWhoFailedToSendIPsList);
@@ -240,7 +251,7 @@
         DeleteCurrentProducerDAM(owner,producersWhoFailedToSendIPsList);
         RemoveBlockCountDAM(owner,producersWhoFailedToSendIPsList);
         ClearWarningDAM(owner,producersWhoFailedToSendIPsList);
-        auto numberOfProducersRequired = info->number_of_validator_producers_required + info->number_of_history_producers_required + info->number_of_full_producers_required;
+        auto numberOfProducersRequired = info->number_of_validator_producers_required + info->number_of_history_producers_required + info->number_of_full_producers_required + reservedSeatsCount;
 
         if (std::distance(_producers.begin(), _producers.end()) < ceil(numberOfProducersRequired * MIN_PRODUCERS_IN_CHAIN_THRESHOLD)) {
             ChangeContractStateDAM({owner, true, false, true, false, false, false, false});
@@ -301,12 +312,15 @@
     stateIndex _states(_self, owner.value);
     blacklistIndex _blacklists(_self, owner.value);
     infoIndex _infos(_self, owner.value);
+    reservedseatIndex _reservedseats(_self, owner.value);
 
     auto state = _states.find(owner.value);
     auto blackListedAccount = _blacklists.find(candidate.value);
     auto info = _infos.find(owner.value);
+    auto reservedSeat = _reservedseats.find(candidate.value);
 
     check(blackListedAccount == _blacklists.end(), "This account is blacklisted and can't enter this sidechain.");
+    check(reservedSeat == _reservedseats.end() || reservedSeat->producer_type == producerType, "This account is in reserved seats with a different producer type");
 
     check(state != _states.end() && state->has_chain_started == true && state->is_candidature_phase == true, "The chain is not in the candidature phase, please check the current state of the chain.");
     check(IsCandidateValid(owner, candidate), "Candidate is already a candidate, a producer, or is banned");
@@ -317,7 +331,10 @@
 
     check(candidateStake.amount >= info->min_candidature_stake, "Stake inserted is not enough. Please insert more stake to be able to apply.");
     check(producerType == 1 || producerType == 2 || producerType == 3, "Incorrect producer type. Pleace choose a correct producer type");
-    check((producerType == 1 && info -> number_of_validator_producers_required != 0) || (producerType == 2  && info -> number_of_history_producers_required != 0) || (producerType == 3 && info -> number_of_full_producers_required != 0), "The producer type is not required in the given sidechain configuration. Pleace choose another type");
+    if (reservedSeat == _reservedseats.end())
+    {
+        check((producerType == 1 && info -> number_of_validator_producers_required != 0) || (producerType == 2  && info -> number_of_history_producers_required != 0) || (producerType == 3 && info -> number_of_full_producers_required != 0), "The producer type is not required in the given sidechain configuration. Pleace choose another type");
+    }
     AddCandidateDAM(owner, candidate, publicKey, secretHash, producerType);
     eosio::print("Candidate added.");
 }
@@ -656,25 +673,25 @@
     }
 }
 
-[[eosio::action]] void blockbase::addaccperm(eosio::name owner, eosio::name account, std::string publicKey, std::string permissions) {
-    require_auth(owner);
-    accpermIndex _accperm(_self, owner.value);
-    auto accountInTable = _accperm.find(account.value);
-    check(accountInTable == _accperm.end(), "Permissions for this account already inserted");
-    _accperm.emplace(owner, [&](auto &accpermI) {
-        accpermI.key = account;
-        accpermI.public_key = publicKey;
-        accpermI.permissions = permissions;
-    });
-}
+// [[eosio::action]] void blockbase::addaccperm(eosio::name owner, eosio::name account, std::string publicKey, std::string permissions) {
+//     require_auth(owner);
+//     accpermIndex _accperm(_self, owner.value);
+//     auto accountInTable = _accperm.find(account.value);
+//     check(accountInTable == _accperm.end(), "Permissions for this account already inserted");
+//     _accperm.emplace(owner, [&](auto &accpermI) {
+//         accpermI.key = account;
+//         accpermI.public_key = publicKey;
+//         accpermI.permissions = permissions;
+//     });
+// }
 
-[[eosio::action]] void blockbase::remaccperm(eosio::name owner, eosio::name account) {
-    require_auth(owner);
-    accpermIndex _accperm(_self, owner.value);
-    auto accountInTable = _accperm.find(account.value);
-    check(accountInTable != _accperm.end(), "Account permissions not found");
-    _accperm.erase(accountInTable);
-}
+// [[eosio::action]] void blockbase::remaccperm(eosio::name owner, eosio::name account) {
+//     require_auth(owner);
+//     accpermIndex _accperm(_self, owner.value);
+//     auto accountInTable = _accperm.find(account.value);
+//     check(accountInTable != _accperm.end(), "Account permissions not found");
+//     _accperm.erase(accountInTable);
+// }
 
 [[eosio::action]] void blockbase::addversig(eosio::name owner, eosio::name account, std::string blockHash, std::string verifySignature, std::vector<char> packedTransaction) {
     require_auth(account);
@@ -689,7 +706,7 @@
     });
 }
 
-[[eosio::action]] void blockbase::addreseats(eosio::name owner, std::vector<eosio::name> seatsToAdd) {
+[[eosio::action]] void blockbase::addreseats(eosio::name owner, std::vector<blockbase::reservedseat> seatsToAdd) {
     require_auth(owner);
     blacklistIndex _blacklists(_self, owner.value);
     reservedseatIndex _reservedseats(_self, owner.value);
@@ -701,11 +718,12 @@
     check(chainState != _states.end() && chainState->has_chain_started == true && chainState->is_secret_sending_phase == false && chainState->is_ip_sending_phase == false && chainState->is_ip_retrieving_phase == false, "Chain is not in the right state. Try again when its candidature time or production time");
     
     for(auto seatToAdd : seatsToAdd) {
-        auto blacklist = _blacklists.find(seatToAdd.value);
-        auto reservedSeat = _reservedseats.find(seatToAdd.value);
-        if(blacklist == _blacklists.end() && reservedSeat == _reservedseats.end() && is_account(seatToAdd)) {
+        auto blacklist = _blacklists.find(seatToAdd.key.value);
+        auto reservedSeat = _reservedseats.find(seatToAdd.key.value);
+        if(blacklist == _blacklists.end() && reservedSeat == _reservedseats.end() && is_account(seatToAdd.key)) {
             _reservedseats.emplace(owner, [&](auto &reservedSeatI){
-                reservedSeatI.key = seatToAdd;
+                reservedSeatI.key = seatToAdd.key;
+                reservedSeatI.producer_type = seatToAdd.producer_type;
             });
         }
     }
@@ -744,14 +762,15 @@
 
     stateIndex _states(_self, owner.value);
     producersIndex _producers(_self, owner.value);
-    reservedseatIndex _reserverseats(_self, owner.value);
+    reservedseatIndex _reservedseats(_self, owner.value);
+
+    auto reservedSeatsCount = std::distance(_reservedseats.begin(), _reservedseats.end());
     auto state = _states.find(owner.value);
-    auto numberOfProducersRequired = infoChangeJson.number_of_validator_producers_required + infoChangeJson.number_of_history_producers_required + infoChangeJson.number_of_full_producers_required;
 
     check(infoChangeJson.key.value == owner.value, "Account isn't the same account as the sidechain owner.");
 
     check(state != _states.end() && state->has_chain_started == true && state->is_configuration_phase == false && state->is_secret_sending_phase == false && state->is_ip_sending_phase == false && state->is_ip_retrieving_phase == false , "This sidechain is in a state that doesn't allow configuration changes");
-    check(IsConfigurationChangeValid(infoChangeJson), "The configuration changes inserted is incorrect or not valid, please insert it again.");
+    check(IsConfigurationChangeValid(infoChangeJson, reservedSeatsCount), "The configuration changes inserted is incorrect or not valid, please insert it again.");
 
     UpdateChangeConfigDAM(owner, infoChangeJson);
 }

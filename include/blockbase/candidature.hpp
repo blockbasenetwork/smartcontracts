@@ -29,11 +29,15 @@
         producersIndex _producers(_self, owner.value);
         candidatesIndex _candidates(_self, owner.value);
         infoIndex _infos(_self, owner.value);
+        reservedseatIndex _reservedseats(_self, owner.value);
         auto info = _infos.get(owner.value);
 
         int32_t numberOfValidatorProducers = 0;
         int32_t numberOfHistoryProducers = 0;
         int32_t numberOfFullProducers = 0;
+        int32_t numberOfFreeReservedValidator = 0;
+        int32_t numberOfFreeReservedHistory = 0;
+        int32_t numberOfFreeReservedFull = 0;
 
         for(auto producer : _producers){
             if(producer.producer_type == 1) numberOfValidatorProducers += 1;
@@ -41,17 +45,25 @@
             if(producer.producer_type == 3) numberOfFullProducers += 1;
         }
 
+        for(auto reservedseat : _reservedseats){
+            auto producer = _producers.find(reservedseat.key.value);
+            if (producer != _producers.end()) continue;
+            if(reservedseat.producer_type == 1) numberOfFreeReservedValidator += 1;
+            if(reservedseat.producer_type == 2) numberOfFreeReservedHistory += 1;
+            if(reservedseat.producer_type == 3) numberOfFreeReservedFull += 1;
+        }
+
         for(auto candidate : _candidates){
-            if(candidate.producer_type == 1 && info.number_of_validator_producers_required > numberOfValidatorProducers) return true;
-            if(candidate.producer_type == 2 && info.number_of_history_producers_required > numberOfHistoryProducers) return true;
-            if(candidate.producer_type == 3 && info.number_of_full_producers_required > numberOfFullProducers) return true;
+            if(candidate.producer_type == 1 && info.number_of_validator_producers_required + numberOfFreeReservedValidator > numberOfValidatorProducers) return true;
+            if(candidate.producer_type == 2 && info.number_of_history_producers_required + numberOfFreeReservedHistory > numberOfHistoryProducers) return true;
+            if(candidate.producer_type == 3 && info.number_of_full_producers_required + numberOfFreeReservedFull > numberOfFullProducers) return true;
         }
 
         return false;
     }
 
-    bool blockbase::IsConfigurationValid(blockbase::contractinfo info) {
-        auto numberOfProducersRequired = info.number_of_validator_producers_required + info.number_of_history_producers_required + info.number_of_full_producers_required;
+    bool blockbase::IsConfigurationValid(blockbase::contractinfo info, int32_t numberOfReservedSeats) {
+        auto numberOfProducersRequired = info.number_of_validator_producers_required + info.number_of_history_producers_required + info.number_of_full_producers_required + numberOfReservedSeats;
         if(info.candidature_phase_duration_in_seconds < MIN_CANDIDATURE_TIME_IN_SECONDS) return false;
         if(info.ip_sending_phase_duration_in_seconds < MIN_IP_SEND_TIME_IN_SECONDS) return false; 
         if(info.ip_retrieval_phase_duration_in_seconds < MIN_IP_SEND_TIME_IN_SECONDS) return false;
@@ -63,8 +75,8 @@
         return info.min_candidature_stake >= MIN_CANDIDATE_STAKE;
     }
 
-    bool blockbase::IsConfigurationChangeValid(blockbase::configchange info) {
-        auto numberOfProducersRequired = info.number_of_validator_producers_required + info.number_of_history_producers_required + info.number_of_full_producers_required;
+    bool blockbase::IsConfigurationChangeValid(blockbase::configchange info, int32_t numberOfReservedSeats) {
+        auto numberOfProducersRequired = info.number_of_validator_producers_required + info.number_of_history_producers_required + info.number_of_full_producers_required + numberOfReservedSeats;
         if(numberOfProducersRequired < MIN_REQUIRED_PRODUCERS) return false;
         if(info.block_size_in_bytes <= MIN_BLOCK_SIZE) return false;
         if(info.min_payment_per_block_full_producers > info.max_payment_per_block_full_producers) return false;
@@ -105,7 +117,10 @@
         infoIndex _infos(_self, owner.value);
         candidatesIndex _candidates(_self, owner.value);
         producersIndex _producers(_self, owner.value);
+        reservedseatIndex _reservedseats(_self, owner.value);
+
         auto info = _infos.get(owner.value);
+
         int32_t numberOfProducersRequired = producerType == 1 ? info.number_of_validator_producers_required : producerType == 2 ? info.number_of_history_producers_required : info.number_of_full_producers_required;
         
         std::vector<struct blockbase::candidates> selectedCandidateList;
@@ -114,7 +129,9 @@
         if (numberOfProducersRequired == 0) return selectedCandidateList;
 
         for(auto producer : _producers){
-            if(producer.producer_type == producerType) producersOfSelectedType.push_back(producer);
+            //only count producers that aren't on reserved seats for candidate selection
+            auto producerReserved = _reservedseats.find(producer.key.value);
+            if(producer.producer_type == producerType && producerReserved == _reservedseats.end()) producersOfSelectedType.push_back(producer);
         }
 
         if (producersOfSelectedType.size() == numberOfProducersRequired) return selectedCandidateList;
@@ -162,26 +179,10 @@
         reservedseatIndex _reservedseats(_self, owner.value);
         infoIndex _infos(_self, owner.value);
         auto info = _infos.find(owner.value);
-        auto numOfValidatorAdded = 0;
-        auto numOfHistoryAdded = 0;
-        auto numOfFullAdded = 0;
 
         for (auto candidate : _candidates) {
             auto reservedSeat = _reservedseats.find(candidate.key.value);
             if (reservedSeat != _reservedseats.end()) {
-                if (candidate.producer_type == 1) {
-                    if(numOfValidatorAdded >= info->number_of_validator_producers_required) continue;
-                    numOfValidatorAdded ++;
-                }
-                if (candidate.producer_type == 2) {
-                    if(numOfHistoryAdded >= info->number_of_history_producers_required) continue;
-                    numOfHistoryAdded ++;
-                }
-                if (candidate.producer_type == 3) {
-                    if(numOfFullAdded >= info->number_of_full_producers_required) continue;
-                    numOfFullAdded ++;
-                }
-                
                 AddProducerDAM(owner, candidate);
                 UpdateWarningTimeInNewProducer(owner, candidate.key);
                 AddPublicKeyDAM(owner, candidate.key, candidate.public_key);
@@ -237,11 +238,13 @@
 
     void blockbase::UpdateContractInfoDAM(eosio::name owner, blockbase::contractinfo informationJson) {
         infoIndex _infos(_self, owner.value);
+        reservedseatIndex _reservedseats(_self, owner.value);
 
         auto info = _infos.find(owner.value);
         if(info != _infos.end()) _infos.erase(info);
 
-        auto number_of_producers = informationJson.number_of_validator_producers_required + informationJson.number_of_history_producers_required + informationJson.number_of_full_producers_required;
+        auto reservedSeatsCount = std::distance(_reservedseats.begin(), _reservedseats.end());
+        auto number_of_producers = informationJson.number_of_validator_producers_required + informationJson.number_of_history_producers_required + informationJson.number_of_full_producers_required + reservedSeatsCount;
          
         _infos.emplace(owner, [&](auto &newInfoI) {
             newInfoI.key = owner;
@@ -271,11 +274,13 @@
 
     void blockbase::UpdateChangeConfigDAM(eosio::name owner, blockbase::configchange infoChangeJson) {
         configchgIndex _configchange(_self, owner.value);
+        reservedseatIndex _reservedseats(_self, owner.value);
 
         auto info = _configchange.find(owner.value);
         if(info != _configchange.end()) _configchange.erase(info);
 
-        auto number_of_producers = infoChangeJson.number_of_validator_producers_required + infoChangeJson.number_of_history_producers_required + infoChangeJson.number_of_full_producers_required;
+        auto reservedSeatsCount = std::distance(_reservedseats.begin(), _reservedseats.end());
+        auto number_of_producers = infoChangeJson.number_of_validator_producers_required + infoChangeJson.number_of_history_producers_required + infoChangeJson.number_of_full_producers_required + reservedSeatsCount;
          
         _configchange.emplace(owner, [&](auto &newInfoI) {
             newInfoI.key = owner;
@@ -378,4 +383,19 @@
 
         return candidatesToRemove;
     };
+
+    std::vector<struct blockbase::producers> blockbase::GetProducersWithoutReservedSeat(eosio::name owner) {
+        std::vector<struct blockbase::producers> producersWithoutReservedSeat;
+
+        producersIndex _producers(_self, owner.value);
+        reservedseatIndex _reservedseats(_self, owner.value);
+        for (auto producer : _producers) {
+            auto reservedSeatFound = _reservedseats.find(producer.key.value);
+            if (reservedSeatFound == _reservedseats.end()) {
+                producersWithoutReservedSeat.push_back(producer);
+            }
+        }
+
+        return producersWithoutReservedSeat;
+    }
 #pragma endregion

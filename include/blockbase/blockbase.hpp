@@ -76,6 +76,7 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     // Reserved Seats Table
     struct [[eosio::table]] reservedseat {
         eosio::name key;
+        uint8_t producer_type;
         uint64_t primary_key() const { return key.value; }
     };
     typedef eosio::multi_index<eosio::name("reservedseat"), reservedseat> reservedseatIndex;
@@ -266,7 +267,7 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     indexed_by<"byexittime"_n, const_mem_fun<warnings, uint64_t, &warnings::by_exit_time>>> warningsIndex;
 
     [[eosio::action]] void startchain(eosio::name owner, std::string publicKey);
-    [[eosio::action]] void configchain(eosio::name owner, blockbase::contractinfo infoJson, std::vector<eosio::name> reservedSeats, uint32_t softwareVersion, eosio::binary_extension<blockbase::blockheaders>& startingBlock);
+    [[eosio::action]] void configchain(eosio::name owner, blockbase::contractinfo infoJson, std::vector<blockbase::reservedseat> reservedSeats, uint32_t softwareVersion, eosio::binary_extension<blockbase::blockheaders>& startingBlock);
     [[eosio::action]] void startcandtime(eosio::name owner);
     [[eosio::action]] void secrettime(eosio::name owner);
     [[eosio::action]] void startsendtime(eosio::name owner);
@@ -290,11 +291,11 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     [[eosio::action]] void addblckbyte(eosio::name owner, eosio::name producer, std::string byteInHex, std::vector<char> packedTransaction);
     [[eosio::action]] void addhistsig(eosio::name owner, eosio::name producer, eosio::name producerToValidade, std::string verifySignature, std::vector<char> packedTransaction);
     [[eosio::action]] void histvalidate(eosio::name owner, eosio::name producer, std::string blockHash);
-    [[eosio::action]] void addaccperm(eosio::name owner, eosio::name account, std::string publicKey, std::string permissions);
-    [[eosio::action]] void remaccperm(eosio::name owner, eosio::name account);
+    // [[eosio::action]] void addaccperm(eosio::name owner, eosio::name account, std::string publicKey, std::string permissions);
+    // [[eosio::action]] void remaccperm(eosio::name owner, eosio::name account);
     [[eosio::action]] void addversig(eosio::name owner, eosio::name account, std::string blockHash, std::string verifySignature, std::vector<char> packedTransaction);
     [[eosio::action]] void exitrequest(eosio::name owner, eosio::name account);
-    [[eosio::action]] void addreseats(eosio::name owner, std::vector<eosio::name> seatsToAdd);
+    [[eosio::action]] void addreseats(eosio::name owner, std::vector<blockbase::reservedseat> seatsToAdd);
     [[eosio::action]] void rreservseats(eosio::name owner, std::vector<eosio::name> seatsToRemove);
     [[eosio::action]] void alterconfig(eosio::name owner, blockbase::configchange infoChangeJson);
 
@@ -308,8 +309,8 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     bool IsSecretValid(eosio::name owner, eosio::name name, checksum256 secret);
     bool HasBlockBeenProduced(eosio::name owner, eosio::name producer);
     bool IsPublicKeyValid(eosio::name owner, std::string publicKey);
-    bool IsConfigurationValid(blockbase::contractinfo info);
-    bool IsConfigurationChangeValid(blockbase::configchange info);
+    bool IsConfigurationValid(blockbase::contractinfo info, int32_t numberOfReservedSeats);
+    bool IsConfigurationChangeValid(blockbase::configchange info, int32_t numberOfReservedSeats);
     bool IsCandidateValid(eosio::name owner, eosio::name producer);
     bool IsCandidaturePhase(eosio::name owner);
     bool IsTimestampValid(eosio::name owner, blockheaders block);
@@ -372,5 +373,6 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     void RemoveProducerWithWorktimeFinished(eosio::name owner);
     void CheckHistoryValidation(eosio::name owner);
     std::vector<struct blockbase::candidates> GetCandidatesToClear(eosio::name owner);
+    std::vector<struct blockbase::producers> GetProducersWithoutReservedSeat(eosio::name owner);
     std::vector<struct blockbase::producers> GetAllProducersToRemove(eosio::name owner, uint16_t numberOfProducersToRemove);
 };

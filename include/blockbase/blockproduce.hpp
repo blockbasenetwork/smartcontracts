@@ -148,9 +148,12 @@ void blockbase::ReOpenCandidaturePhaseIfRequired(eosio::name owner){
     producersIndex _producers(_self, owner.value);
     currentprodIndex _currentprods(_self, owner.value);
     infoIndex _infos(_self, owner.value);
+    reservedseatIndex _reservedseats(_self, owner.value);
+    
     auto info = _infos.find(owner.value);
     auto state = _states.find(owner.value);
-    auto numberOfProducersRequired = info->number_of_validator_producers_required + info->number_of_history_producers_required + info->number_of_full_producers_required;
+    auto reservedSeatsCount = std::distance(_reservedseats.begin(), _reservedseats.end());
+    auto numberOfProducersRequired = info->number_of_validator_producers_required + info->number_of_history_producers_required + info->number_of_full_producers_required + reservedSeatsCount;
     uint8_t producersInSidechainCount = std::distance(_producers.begin(), _producers.end());
 
     if (state->is_production_phase && producersInSidechainCount < numberOfProducersRequired) {
