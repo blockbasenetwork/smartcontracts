@@ -48,6 +48,7 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     const eosio::name VERIFY_PERMISSION_NAME = eosio::name("verifyblock");
     const std::vector<eosio::name> VERIFY_PERMISSION_ACTION{eosio::name("verifyblock")};
     const eosio::name CKEY = eosio::name("currentprod");
+    const eosio::name BLCKEY = eosio::name("blockcheck");
 
     // Producers Table
     struct [[eosio::table]] producers {
@@ -266,6 +267,16 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     typedef eosio::multi_index<eosio::name("warnings"), warnings, 
     indexed_by<"byexittime"_n, const_mem_fun<warnings, uint64_t, &warnings::by_exit_time>>> warningsIndex;
 
+
+    //AddBlockCheck
+    struct [[eosio::table]] blockcheck {
+        eosio::name key;
+        std::string block_hash;
+        uint64_t timestamp;
+        uint64_t primary_key() const { return key.value; }
+    };
+    typedef eosio::multi_index<eosio::name("blockcheck"), blockcheck> blockcheckIndex;
+
     [[eosio::action]] void startchain(eosio::name owner, std::string publicKey);
     [[eosio::action]] void configchain(eosio::name owner, blockbase::contractinfo infoJson, std::vector<blockbase::reservedseat> reservedSeats, uint32_t softwareVersion, eosio::binary_extension<blockbase::blockheaders>& startingBlock);
     [[eosio::action]] void startcandtime(eosio::name owner);
@@ -330,7 +341,7 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     void RemoveAllProducerWarningsDAM(eosio::name owner, std::vector<struct producers> producers);
     bool IsRequesterStakeEnough(eosio::name owner);
     void RewardProducerDAM(eosio::name owner, eosio::name producer, uint64_t quantity);
-    void UpdateBlockCount(eosio::name owner, eosio::name producer);
+    void UpdateBlockCount(eosio::name owner, eosio::name producer, uint64_t roundStartTime);
     void UpdateCurrentProducerDAM(eosio::name owner, eosio::name nextProducer);
     void AddCandidatesWithReservedSeat(eosio::name owner);
     void AddBlockDAM(eosio::name owner, eosio::name producer, blockbase::blockheaders block);
@@ -375,4 +386,5 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     std::vector<struct blockbase::candidates> GetCandidatesToClear(eosio::name owner);
     std::vector<struct blockbase::producers> GetProducersWithoutReservedSeat(eosio::name owner);
     std::vector<struct blockbase::producers> GetAllProducersToRemove(eosio::name owner, uint16_t numberOfProducersToRemove);
+    void UpdateBlockCheckDAM(eosio::name owner, eosio::name producer, std::string blockHash);
 };

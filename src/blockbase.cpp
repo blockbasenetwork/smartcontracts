@@ -416,6 +416,7 @@
     check(IsPreviousBlockHashAndSequenceNumberValid(owner, block), "Invalid previous blockhash or sequence number in block header.");
     check(!HasBlockBeenProduced(owner, producer), "You already produced in this time slot, wait for your turn.");
     AddBlockDAM(owner, producer, block);
+    UpdateBlockCheckDAM(owner, producer, block.block_hash);
     eosio::print("Block submited with success.");
 }
 
@@ -543,7 +544,7 @@
 
             if (currentProducer == _currentprods.end() || (currentProducer->production_start_date_in_seconds + info->block_time_in_seconds) <= eosio::current_block_time().to_time_point().sec_since_epoch()) {
                 if (currentProducer != _currentprods.end()) {
-                    UpdateBlockCount(owner, currentProducer->producer);
+                    UpdateBlockCount(owner, currentProducer->producer, currentProducer->production_start_date_in_seconds);
                 }
                 
                 auto deleteitr = _verifysig.begin();
@@ -638,6 +639,8 @@
     _histval.modify(histval, producer, [&](auto &historyValidationI) {
         historyValidationI.block_byte_in_hex = byteInHex;
         historyValidationI.packed_transaction = packedTransaction;
+        historyValidationI.verify_signatures.clear();
+        historyValidationI.signed_producers.clear();
     });
 }
 

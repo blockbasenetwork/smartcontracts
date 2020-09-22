@@ -123,24 +123,30 @@ bool blockbase::IsRequesterStakeEnough(eosio::name owner) {
 }
 
 
-void blockbase::UpdateBlockCount(eosio::name owner, eosio::name producer) {
+void blockbase::UpdateBlockCount(eosio::name owner, eosio::name producer, uint64_t roundStartTime) {
     blockheadersIndex _blockheaders(_self, owner.value);
     infoIndex _infos(_self, owner.value);
     blockscountIndex _blockscount(_self, owner.value);
+    blockcheckIndex _blockcheck(_self, owner.value);
 
+    auto blockcheck = _blockcheck.find(BLCKEY.value);
     auto info = _infos.find(owner.value);
     auto producerBlockCount = _blockscount.find(producer.value);
+    auto lastBlockTimeChecksOut = (--_blockheaders.end())->timestamp > roundStartTime;
     if (std::distance(_blockheaders.begin(), _blockheaders.end()) > 0) {
-        if (producer == eosio::name((--_blockheaders.end())->producer) && (--_blockheaders.end())->is_verified == true) {
+        if (producer == eosio::name((--_blockheaders.end())->producer) && lastBlockTimeChecksOut && (--_blockheaders.end())->is_verified == true) {
             _blockscount.modify(producerBlockCount, owner, [&](auto &blockCountI) {
                 blockCountI.num_blocks_produced += 1;
             });
             return;
         }
     }
-    _blockscount.modify(producerBlockCount, owner, [&](auto &blockcountI) {
-        blockcountI.num_blocks_failed += 1;
-    });
+    if (!lastBlockTimeChecksOut || blockcheck->block_hash != (--_blockheaders.end())->block_hash || blockcheck->timestamp > (roundStartTime + info->block_time_in_seconds) / 3) {
+        _blockscount.modify(producerBlockCount, owner, [&](auto &blockcountI) {
+            blockcountI.num_blocks_failed += 1;
+        });
+    }
+    
 
 
     //TODO - refactor this code to a different method
@@ -197,6 +203,23 @@ void blockbase::UpdateCurrentProducerDAM(eosio::name owner, eosio::name nextProd
             newCurrentProducerI.producer = nextProducer;
             newCurrentProducerI.production_start_date_in_seconds = eosio::current_block_time().to_time_point().sec_since_epoch();
             newCurrentProducerI.has_produced_block = false;
+        });
+    }
+}
+
+void blockbase::UpdateBlockCheckDAM(eosio::name owner, eosio::name producer, std::string blockHash) {
+    blockcheckIndex _blockcheck(_self, owner.value);
+    auto blockcheck = _blockcheck.find(BLCKEY.value);
+    if (blockcheck != _blockcheck.end()) {
+        _blockcheck.modify(blockcheck, producer, [&](auto &blockcheckI) {
+            blockcheckI.timestamp = eosio::current_block_time().to_time_point().sec_since_epoch();
+            blockcheckI.block_hash = blockHash;
+        });
+    } else {
+        _blockcheck.emplace(producer, [&](auto &blockcheckI) {
+            blockcheckI.key = BLCKEY;
+            blockcheckI.timestamp = eosio::current_block_time().to_time_point().sec_since_epoch();
+            blockcheckI.block_hash = blockHash;
         });
     }
 }
