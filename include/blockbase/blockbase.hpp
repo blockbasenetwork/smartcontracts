@@ -302,8 +302,8 @@ class[[eosio::contract]] blockbase : public eosio::contract {
     [[eosio::action]] void addblckbyte(eosio::name owner, eosio::name producer, std::string byteInHex, std::vector<char> packedTransaction);
     [[eosio::action]] void addhistsig(eosio::name owner, eosio::name producer, eosio::name producerToValidade, std::string verifySignature, std::vector<char> packedTransaction);
     [[eosio::action]] void histvalidate(eosio::name owner, eosio::name producer, std::string blockHash);
-    // [[eosio::action]] void addaccperm(eosio::name owner, eosio::name account, std::string publicKey, std::string permissions);
-    // [[eosio::action]] void remaccperm(eosio::name owner, eosio::name account);
+    [[eosio::action]] void addaccperm(eosio::name owner, eosio::name account, std::string publicKey, std::string permissions);
+    [[eosio::action]] void remaccperm(eosio::name owner, eosio::name account);
     [[eosio::action]] void addversig(eosio::name owner, eosio::name account, std::string blockHash, std::string verifySignature, std::vector<char> packedTransaction);
     [[eosio::action]] void exitrequest(eosio::name owner, eosio::name account);
     [[eosio::action]] void addreseats(eosio::name owner, std::vector<blockbase::reservedseat> seatsToAdd);
