@@ -22,7 +22,7 @@
             if(producer.public_key == publicKey) return false;
         }
 
-        return publicKey.size() == 53 && publicKey.substr(0,3) == "EOS";
+        return (publicKey.size() == 53 && publicKey.substr(0,3) == "EOS") || (publicKey.size() == 57 && publicKey.substr(0,6) == "PUB_K1");
     }
 
     bool blockbase::AreThereEmptySlotsForCandidateTypes(eosio::name owner) {
