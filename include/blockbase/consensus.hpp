@@ -278,7 +278,7 @@ void blockbase::RemoveUnreadyProducersWithLongWaitTime(eosio::name owner){
     producersIndex _producers(_self, owner.value);
     std::vector<struct producers> producersToRemove;
     for(auto producer : _producers) {
-        if(producer.is_ready_to_produce && producer.sidechain_start_date_in_seconds + (ONE_DAY_IN_SECONDS * 3) <= eosio::current_block_time().to_time_point().sec_since_epoch()) {        
+        if(!producer.is_ready_to_produce && producer.sidechain_start_date_in_seconds + (ONE_DAY_IN_SECONDS * 3) <= eosio::current_block_time().to_time_point().sec_since_epoch()) {        
             producersToRemove.push_back(producer);
         }
     }
